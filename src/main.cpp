@@ -18,10 +18,33 @@ const unsigned int SCR_HEIGHT = 600;
 
 float opacity = 0.2;
 
+glm::vec3 camera_pos   = glm::vec3(0.0f, 0.0f, 3.0f);
+glm::vec3 camera_front = glm::vec3(0.0F, 0.0F, -1.0F);
+glm::vec3 camera_up    = glm::vec3(0.0f, 1.0f, 0.0f);
+
+const float cameraSpeed = 0.05f;
+
 void processInput(GLFWwindow *window, Shader shader) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     } 
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+        camera_pos += cameraSpeed * camera_front;
+    } 
+
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+        camera_pos -= cameraSpeed * camera_front;
+    } 
+
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+        camera_pos -= glm::normalize(glm::cross(camera_front, camera_up)) * cameraSpeed;
+    } 
+
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+        camera_pos += glm::normalize(glm::cross(camera_front, camera_up)) * cameraSpeed;
+    }
+    
 
     // if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && opacity < 1.0) {
     //     opacity += 0.1;
@@ -209,24 +232,6 @@ int main()
     // loading in shaders from file
     Shader basicShader("basic");
 
-    // unsigned int transformLoc = glGetUniformLocation(basicShader.ID,"transform");
-
-    // glm::vec3 camera_pos = glm::vec3(0.0f, 0.0f, 3.0f);
-    // glm::vec3 camera_target = glm::vec3(0.0f, 0.0f, 0.0f);
-    // glm::vec3 camera_direction = glm::normalize(camera_pos - camera_target);
-
-    // glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-    // glm::vec3 camera_right = glm::normalize(glm::cross(up, camera_direction));
-
-    // glm::vec3 cameraUp = glm::cross(camera_direction, camera_right);
-
-    // glm::mat4 view;
-    // view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
-    //                    glm::vec3(0.0f, 0.0f, 0.0f,),
-    //                    glm::vec3(0.0f, 1.0f, 0.0f)
-    // );
-
-
     // tell openGL, for each sampler, which texture unit it belongs too
     basicShader.use();        
     basicShader.setInt("texture1", 0); // or with shader class
@@ -237,39 +242,9 @@ int main()
     while (!glfwWindowShouldClose(window)) {
         // input
         processInput(window, basicShader);
-
-        // 1. bind Vertex Array Object
-        // glBindVertexArray(VAO);
-
         
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // also clear the depth buffer now!
-
-
-
-        // 2. copy our vertices array in a vertex buffer for OpenGL to use
-        // glBindBuffer(GL_ARRAY_BUFFER, VBO_first);
-        // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        // 3. copy our index array in a element buffer for OpenGL to use
-        // glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        // glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices,
-        //    GL_STATIC_DRAW);
-
-
-        // // 4. then set the vertex attributes pointers
-        // // position attribute
-        // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 
-        //     (void*)0);
-        // glEnableVertexAttribArray(0);
-        // // color attribute
-        // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), 
-        //     (void*) (3*sizeof(float)));
-        // glEnableVertexAttribArray(1);
-
-        // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-        //     (void*)(6 * sizeof(float)));
-        // glEnableVertexAttribArray(2);
-
 
         // bind textures on corresponding texture units
         glActiveTexture(GL_TEXTURE0);
@@ -284,12 +259,8 @@ int main()
         glm::mat4 projection    = glm::mat4(1.0f);
         model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
         // camera code
-        const float radius = 10.0f;
-        float camX = sin(glfwGetTime()) * radius;
-        float camZ = cos(glfwGetTime()) * radius;
         glm::mat4 view;
-        view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0),
-        glm::vec3(0.0, 1.0, 0.0));
+        view = glm::lookAt(camera_pos, camera_pos + camera_front, camera_up);
         projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         // retrieve the matrix uniform locations
         unsigned int modelLoc = glGetUniformLocation(basicShader.ID, "model");
