@@ -13,56 +13,87 @@
 #include "Shader.h"
 #include "stb_image.h"
 
+
+
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
+float delta_time = 0.0f; // time between last n current frame
+float last_frame = 0.0f; // last frame time
+
 float opacity = 0.2;
 
+float yaw = -90.0f;
+float pitch = 0.0f;
+
+float last_x = 400, last_y = 300;
+
 glm::vec3 camera_pos   = glm::vec3(0.0f, 0.0f, 3.0f);
-glm::vec3 camera_front = glm::vec3(0.0F, 0.0F, -1.0F);
+glm::vec3 camera_front = glm::vec3(0.0f, 0.0f, -1.0f);
 glm::vec3 camera_up    = glm::vec3(0.0f, 1.0f, 0.0f);
 
-const float cameraSpeed = 0.05f;
+bool first_mouse = true;
 
 void processInput(GLFWwindow *window, Shader shader) {
+    float camera_speed = 2.5f * delta_time;
+
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     } 
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-        camera_pos += cameraSpeed * camera_front;
+        camera_pos += camera_speed * camera_front;
     } 
 
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-        camera_pos -= cameraSpeed * camera_front;
+        camera_pos -= camera_front * camera_speed;
     } 
 
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-        camera_pos -= glm::normalize(glm::cross(camera_front, camera_up)) * cameraSpeed;
+        camera_pos -= glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed;
     } 
 
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-        camera_pos += glm::normalize(glm::cross(camera_front, camera_up)) * cameraSpeed;
+        camera_pos += glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed;
     }
-    
-
-    // if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS && opacity < 1.0) {
-    //     opacity += 0.1;
-    //     std::cout << "Opacity is: " << opacity << "\n";
-    //     shader.setFloat("textureOpacity", opacity);
-    // }
-    
-    // if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS && opacity >= 0.1) {
-    //     opacity -= 0.1;
-    //     std::cout << "Opacity is: " << opacity << "\n";
-    //     shader.setFloat("textureOpacity", opacity);
-    // }
-
-
 }
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
     glViewport(0, 0, width, height);
+}
+
+void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
+
+    if (first_mouse) {
+        last_x = xpos;
+        last_y = ypos;
+        first_mouse = false;
+    }
+
+    float xoffset = xpos - last_x;
+    float yoffset = last_y - ypos; // y is reversed;
+
+    last_x = xpos;
+    last_y = ypos;
+
+    const float sensitivity = 0.1f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    if (pitch > 89.0f)
+        pitch = 89.0f;
+    if (pitch < -89.0f)
+        pitch = -89.0f;
+
+    // look at mouse movement code
+    glm::vec3 direction;
+    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.y = sin(glm::radians(pitch));
+    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    camera_front = glm::normalize(direction);
 }
 
 
@@ -73,7 +104,8 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-  
+
+
     GLFWwindow* window = glfwCreateWindow(800, 600, "Learning OpenGL", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW Window" << std::endl;
@@ -90,6 +122,11 @@ int main()
     glViewport(0, 0, 800, 600);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    // setup for mouse movement -> camera movement
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetCursorPosCallback(window, mouse_callback);
+
 
     float vertices[] = {
         -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
@@ -242,6 +279,10 @@ int main()
     while (!glfwWindowShouldClose(window)) {
         // input
         processInput(window, basicShader);
+
+        float current_frame = glfwGetTime();
+        delta_time = current_frame - last_frame;
+        last_frame = current_frame;
         
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // also clear the depth buffer now!
