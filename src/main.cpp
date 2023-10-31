@@ -26,7 +26,10 @@ float opacity = 0.2;
 float yaw = -90.0f;
 float pitch = 0.0f;
 
+float zoom = 45.0f;
+
 float last_x = 400, last_y = 300;
+
 
 glm::vec3 camera_pos   = glm::vec3(0.0f, 0.0f, 3.0f);
 glm::vec3 camera_front = glm::vec3(0.0f, 0.0f, -1.0f);
@@ -96,6 +99,14 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
     camera_front = glm::normalize(direction);
 }
 
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+    zoom -= (float)yoffset;
+    if (zoom < 1.0f) 
+        zoom = 1.0f;
+    if (zoom > 45.0f)
+        zoom = 45.0f;
+}
+
 
 int main()
 {
@@ -126,6 +137,7 @@ int main()
     // setup for mouse movement -> camera movement
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
 
     float vertices[] = {
@@ -302,7 +314,7 @@ int main()
         // camera code
         glm::mat4 view;
         view = glm::lookAt(camera_pos, camera_pos + camera_front, camera_up);
-        projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        projection = glm::perspective(glm::radians(zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         // retrieve the matrix uniform locations
         unsigned int modelLoc = glGetUniformLocation(basicShader.ID, "model");
         unsigned int viewLoc  = glGetUniformLocation(basicShader.ID, "view");
