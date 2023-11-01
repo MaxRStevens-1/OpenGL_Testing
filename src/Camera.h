@@ -7,6 +7,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 
 class Camera 
@@ -141,11 +142,42 @@ public:
 
     glm::mat4 getView() {
         return glm::lookAt(camera_pos, camera_pos + camera_front, camera_up);
+        // return cameraLookAt(camera_pos, camera_pos + camera_front, camera_up);
+    }
+
+    glm::mat4 cameraLookAt(glm::vec3 pos, glm::vec3 forward, glm::vec3 up) {
+        glm::mat4 orientationMatrix = glm::mat4(1.0f);
+        
+        glm::vec3 zaxis = glm::normalize(pos - forward);
+
+        glm::vec3 xaxis = glm::normalize(glm::cross(up, zaxis));
+        glm::vec3 yaxis = glm::cross(zaxis, xaxis);
+
+        orientationMatrix[0][0] = xaxis.x;
+        orientationMatrix[1][0] = xaxis.y;
+        orientationMatrix[2][0] = xaxis.z;
+
+        orientationMatrix[0][1] = yaxis.x;
+        orientationMatrix[1][1] = yaxis.y;
+        orientationMatrix[2][1] = yaxis.z;
+
+        orientationMatrix[0][2] = zaxis.x;
+        orientationMatrix[1][2] = zaxis.y;
+        orientationMatrix[2][2] = zaxis.z;
+
+        glm::mat4 posMatrix = glm::mat4(1.0f);
+        posMatrix[3][0] = -pos.x;
+        posMatrix[3][1] = -pos.y;
+        posMatrix[3][2] = -pos.z;
+
+        return orientationMatrix * posMatrix;
     }
 
     glm::mat4 getProjection() {
         return glm::perspective(glm::radians(zoom), (float)SCR_WIDTH/(float)SCR_HEIGHT, near, far);
     }
+
+
 
     void timeUpdate() {
         float current_frame = glfwGetTime();

@@ -29,8 +29,6 @@ void processInput(GLFWwindow *window, Shader shader) {
     } 
 
     camera.processInputForCamera(window);
-    // camera.processInputForGroundCamera(window);
-
 }
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
@@ -255,6 +253,7 @@ int main()
         // pass them to the shaders (3 different ways)
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &camera.getView()[0][0]);
+        // glUniformMatrix4fv(viewLoc, 1, GL_FALSE, &camera.cameraLookAt()[0][0]);
         // note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
         basicShader.setMat4("projection", camera.getProjection());
 
