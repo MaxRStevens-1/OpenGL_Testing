@@ -13,5 +13,5 @@ uniform float textureOpacity;
 void main() {
     //vec2 xReversedTexCord = new vec2(texCoord.x, texCoord.y);
     FragColor = mix (texture(texture1, texCoord),
-        texture(texture2, texCoord), textureOpacity);
+        texture(texture2, texCoord), 0.2);
 }
