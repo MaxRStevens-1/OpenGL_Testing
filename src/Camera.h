@@ -21,6 +21,8 @@ private:
     float delta_time = 0.0f; // time between last n current frame
     float last_frame = 0.0f; // last frame time
 
+    float MOVEMENT_CONSTANT = 1.0f;
+
     glm::vec3 camera_pos   = glm::vec3(0.0f, 0.0f, 3.0f);
     glm::vec3 camera_front = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 camera_up    = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -66,6 +68,35 @@ public:
             camera_pos += glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed;
         }
     }
+
+    void processInputForGroundCamera(GLFWwindow *window) {
+
+        timeUpdate();
+
+        float camera_speed = 2.5f * delta_time;
+
+        // move forward
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+            camera_pos.z -= camera_speed * MOVEMENT_CONSTANT;
+        } 
+
+        // move backward
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+            camera_pos.z += camera_speed * MOVEMENT_CONSTANT;
+        } 
+
+        // strafe left
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+            camera_pos.x -= camera_speed * MOVEMENT_CONSTANT;
+        } 
+
+        // strafe right
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+            camera_pos.x += camera_speed * MOVEMENT_CONSTANT;
+        }
+
+    }
+
 
     void processMouseInputForCamera(double xpos, double ypos) {
         if (first_mouse) {
