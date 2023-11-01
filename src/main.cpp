@@ -29,6 +29,7 @@ void processInput(GLFWwindow *window, Shader shader) {
     } 
 
     camera.processInputForCamera(window);
+    // camera.processInputForGroundCamera(window);
 
 }
 
