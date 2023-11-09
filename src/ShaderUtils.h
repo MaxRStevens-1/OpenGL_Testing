@@ -28,14 +28,28 @@ std::vector<std::string> loadShadersFromDirectory(std::string directory_name) {
 
 
     std::ifstream vertex(SHADER_PATH+directory_name+"/"+directory_name+VERTEX_EXTENSION);
+    if (!vertex) {
+        std::cout << "Failed to open file: " + SHADER_PATH+directory_name+"/"+directory_name+VERTEX_EXTENSION +"\n";
+    }
     std::stringstream vertex_buffer;
     vertex_buffer << vertex.rdbuf();
-    shaders_vec[0] = vertex_buffer.str();    
+    shaders_vec[0] = vertex_buffer.str();   
+
+    if (vertex_buffer.str().size() == 0) {
+        std::cout << "File size is 0 for vertex shader.\n";
+    } 
 
     std::ifstream fragment(SHADER_PATH+directory_name+"/"+directory_name+FRAGMENT_EXTENSION);
+    if (!fragment) {
+        std::cout << "Failed to open file: " + SHADER_PATH+directory_name+"/"+directory_name+FRAGMENT_EXTENSION +"\n";
+    }
     std::stringstream fragment_buffer;
     fragment_buffer << fragment.rdbuf();
     shaders_vec[1] = fragment_buffer.str();
+
+    if (fragment_buffer.str().size()) {
+        std::cout << "File size for fragment shader is 0\n";
+    }
 
     return shaders_vec;    
 }
