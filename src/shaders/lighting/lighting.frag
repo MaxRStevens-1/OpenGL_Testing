@@ -2,33 +2,34 @@
 
 in vec3 Normal;
 in vec3 FragPos;
-in vec3 viewSpace;
+in vec3 LightPos;
 
 uniform vec3 objectColor;
 uniform vec3 lightColor;
-uniform vec3 lightPos;
-uniform vec3 viewPos;
+// uniform vec3 lightPos;
+// uniform vec3 viewPos;
 
-float ambientStrength = 0.05;
+float ambientStrength = 0.1;
 float specularStrength = 0.5;
 
-int shininessFactor = 64;
+int shininessFactor = 32;
 
 out vec4 FragColor;
 
 
 void main()
 {
+    //ambient
     vec3 ambient = ambientStrength * lightColor;
 
+    // diffuse
     vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(lightPos - viewSpace);
-    
+    vec3 lightDir = normalize(LightPos - FragPos);
     float diff = max(dot(norm, lightDir), 0.0);
     vec3 diffuse = diff * lightColor;
 
-    // vec3 viewDir = normalize(viewPos - FragPos);
-    vec3 viewDir = normalize(-viewSpace);
+    // specular
+    vec3 viewDir = normalize(-FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), shininessFactor);
     vec3 specular = specularStrength * spec * lightColor;
