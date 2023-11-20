@@ -24,7 +24,6 @@ private:
 
     float MOVEMENT_CONSTANT = 1.0f;
 
-    glm::vec3 camera_pos   = glm::vec3(0.0f, 0.0f, 3.0f);
     glm::vec3 camera_front = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 camera_up    = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -35,6 +34,8 @@ private:
 
 
 public:
+    glm::vec3 camera_pos   = glm::vec3(0.0f, 0.0f, 3.0f);
+
 
     Camera() {
 
@@ -176,7 +177,6 @@ public:
     glm::mat4 getProjection() {
         return glm::perspective(glm::radians(zoom), (float)SCR_WIDTH/(float)SCR_HEIGHT, near, far);
     }
-
 
 
     void timeUpdate() {

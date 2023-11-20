@@ -47,7 +47,7 @@ std::vector<std::string> loadShadersFromDirectory(std::string directory_name) {
     fragment_buffer << fragment.rdbuf();
     shaders_vec[1] = fragment_buffer.str();
 
-    if (fragment_buffer.str().size()) {
+    if (fragment_buffer.str().size() == 0) {
         std::cout << "File size for fragment shader is 0\n";
     }
 
