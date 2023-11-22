@@ -2,6 +2,9 @@
 
 out vec4 FragColor;
 
+uniform vec3 lightColor;
+
 void main() {
-    FragColor = vec4(1.0); // set all 4 vector values to 1.0
+    // set so object color varies with lightsource color.
+    FragColor = vec4(lightColor, 1); // set all 4 vector values to 1.0
 }

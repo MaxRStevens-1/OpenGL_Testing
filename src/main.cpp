@@ -159,43 +159,54 @@ int main()
     Shader lightingShader("lighting");
     Shader light_source_cube_shader("lightSource");
 
-
-    // tell openGL, for each sampler, which texture unit it belongs too
-    // lightingShader.use();        
-    // lightingShader.setInt("texture1", 0); // or with shader class
-    // //glUniform1i(glGetUniformLocation(lightingShader.ID, "texture1"), 0); // manually
-    // lightingShader.setInt("texture2", 1); // or with shader class
-    // lightingShader.setFloat("textureOpacity", opacity);
-
     lightingShader.use();
     lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
     lightingShader.setVec3("lightColor",  1.0f, 1.0f, 1.0f);
-    lightingShader.setVec3("lightPos", lightPos);
+    // lightingShader.setVec3("lightPos", lightPos);
     lightingShader.setVec3("viewPos", camera.camera_pos);
+
+    // setting cube material (cyan crayon)
+    const int BASE_SHINY_MULTIPLE = 128;
+    lightingShader.setVec3("material.ambient", 0.0f, 0.1f, 0.06f);
+    lightingShader.setVec3("material.diffuse", 0.0f, 0.50980392f, 0.50980392f);
+    lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+    lightingShader.setFloat("material.shininess", .25f*(BASE_SHINY_MULTIPLE));
+    
+    // setting light material 
+    lightingShader.setVec3("light.ambient", 1.0f, 1.0f, 1.0f);
+    // lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+    lightingShader.setVec3("light.diffuse", 1.0f, 1.0f, 1.0f); // darkened
+    // lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f); // darkened
+    // lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+    lightingShader.setVec3("light.specular", 0.50196078f, 0.50196078f, 0.50196078f);
+    lightingShader.setVec3("light.position", lightPos);
+
 
     while (!glfwWindowShouldClose(window)) {
         // input
         processInput(window, lightingShader);
 
-
-        
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // also clear the depth buffer now!
-
-        // bind textures on corresponding texture units
-        // glActiveTexture(GL_TEXTURE0);
-        // glBindTexture(GL_TEXTURE_2D, texture1);
-        // glActiveTexture(GL_TEXTURE1);
-        // glBindTexture(GL_TEXTURE_2D, texture2);
 
         // be sure to activate shader when setting uniforms/drawing objects
         lightingShader.use();
-        lightingShader.setVec3("lightPos", lightPos);
-
-        // lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-        // lightingShader.setVec3("lightColor",  1.0f, 1.0f, 1.0f);
         // lightingShader.setVec3("lightPos", lightPos);
+        lightingShader.setVec3("viewPos", camera.camera_pos);
 
+        // setting light color over time
+        glm::vec3 lightColor;
+        lightColor = glm::vec3(1);
+        // lightColor.x = sin(glfwGetTime() * 2.0f);
+        // lightColor.y = sin(glfwGetTime() * 0.7f);
+        // lightColor.z = sin(glfwGetTime() * 1.3f);
+
+        // glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);
+        // glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);
+
+        // lightingShader.setVec3("light.ambient", ambientColor);
+        // lightingShader.setVec3("light.diffuse", diffuseColor);
+        lightingShader.setVec3("light.position", lightPos);
 
         // view/projection transformations
         // glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -217,6 +228,7 @@ int main()
         light_source_cube_shader.use();
         light_source_cube_shader.setMat4("projection", projection);
         light_source_cube_shader.setMat4("view", view);
+        light_source_cube_shader.setVec3("lightColor", lightColor);
 
         // update lightpos
         float time = glfwGetTime();
