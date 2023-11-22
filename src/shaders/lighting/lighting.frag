@@ -6,8 +6,13 @@ in vec3 LightPos;
 
 uniform vec3 objectColor;
 uniform vec3 lightColor;
-// uniform vec3 lightPos;
-// uniform vec3 viewPos;
+struct Material {
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shiniess;
+}
+uniform Material material;
 
 float ambientStrength = 0.1;
 float specularStrength = 0.5;
@@ -15,7 +20,6 @@ float specularStrength = 0.5;
 int shininessFactor = 32;
 
 out vec4 FragColor;
-
 
 void main()
 {
