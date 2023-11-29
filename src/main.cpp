@@ -198,6 +198,8 @@ int main()
     lightingShader.setVec3("light.position", camera.camera_pos);
     lightingShader.setVec3("light.direction", camera.camera_front);
     lightingShader.setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
+    lightingShader.setFloat("light.outerCutOff", glm::cos(glm::radians(17.5f)));
+
 
     // setting specular and diffuse maps
     glActiveTexture(GL_TEXTURE0);
