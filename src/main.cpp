@@ -206,6 +206,7 @@ int main()
     glBindTexture(GL_TEXTURE_2D, specularMap);
     // glActiveTexture(GL_TEXTURE2);
     // glBindTexture(GL_TEXTURE_2D, emmissionMap);
+    
 
     glm::vec3 cubePositions[] = {
         glm::vec3( 0.0f, 0.0f, 0.0f),
