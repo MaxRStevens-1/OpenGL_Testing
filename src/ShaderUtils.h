@@ -84,7 +84,6 @@ int generateTextureFromPath(std::string path, unsigned int texture) {
             std::cout << "Failed to load texture" << std::endl;
         }
     } else if (path.find(".jpg") != std::string::npos) {
-        std::cout << "Found jpg";
         if (data) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
             glGenerateMipmap(GL_TEXTURE_2D);
