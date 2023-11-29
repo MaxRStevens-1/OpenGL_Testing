@@ -157,6 +157,10 @@ int main()
 
     unsigned int diffuseMap;
     diffuseMap = generateTextureFromPath("./textures/simple/container2.png", diffuseMap);
+    unsigned int specularMap;
+    specularMap = generateTextureFromPath("./textures/simple/container2_specular.png", specularMap);
+    unsigned int emmissionMap;
+    emmissionMap = generateTextureFromPath("./textures/simple/matrix.jpg", emmissionMap);
 
     // create camera;
     camera = Camera(SCR_WIDTH, SCR_HEIGHT);
@@ -173,8 +177,9 @@ int main()
     // lightingShader.setVec3("material.ambient", 0.0f, 0.1f, 0.06f);
     // lightingShader.setVec3("material.diffuse", 0.0f, 0.50980392f, 0.50980392f);
     lightingShader.setInt("material.diffuse", 0);
+    lightingShader.setInt("material.specular", 1);
+    lightingShader.setInt("material.emission", 2);
 
-    lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
     lightingShader.setFloat("material.shininess", .25f*(BASE_SHINY_MULTIPLE));
     
     // setting light material 
@@ -186,6 +191,13 @@ int main()
     // lightingShader.setVec3("light.specular", 0.50196078f, 0.50196078f, 0.50196078f);
     lightingShader.setVec3("light.position", lightPos);
 
+    // setting specular and diffuse maps
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, diffuseMap);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, specularMap);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, emmissionMap);
 
     while (!glfwWindowShouldClose(window)) {
         // input
@@ -198,10 +210,6 @@ int main()
         lightingShader.use();
         // lightingShader.setVec3("lightPos", lightPos);
         lightingShader.setVec3("viewPos", camera.camera_pos);
-
-        
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, diffuseMap);
 
         // setting light color over time
         glm::vec3 lightColor;
