@@ -24,9 +24,6 @@ private:
 
     float MOVEMENT_CONSTANT = 1.0f;
 
-    glm::vec3 camera_front = glm::vec3(0.0f, 0.0f, -1.0f);
-    glm::vec3 camera_up    = glm::vec3(0.0f, 1.0f, 0.0f);
-
     bool first_mouse = true;
 
     int SCR_WIDTH;
@@ -35,7 +32,8 @@ private:
 
 public:
     glm::vec3 camera_pos   = glm::vec3(0.0f, 0.0f, 3.0f);
-
+    glm::vec3 camera_front = glm::vec3(0.0f, 0.0f, -1.0f);
+    glm::vec3 camera_up    = glm::vec3(0.0f, 1.0f, 0.0f);
 
     Camera() {
 

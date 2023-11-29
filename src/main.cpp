@@ -166,7 +166,8 @@ int main()
     camera = Camera(SCR_WIDTH, SCR_HEIGHT);
 
     // loading in shaders from file
-    Shader lightingShader("lighting");
+    // Shader lightingShader("lighting");
+    Shader lightingShader("spotlight");
     Shader light_source_cube_shader("lightSource");
 
     lightingShader.use();
@@ -194,7 +195,10 @@ int main()
     lightingShader.setFloat("light.constant", 1.0f);
     lightingShader.setFloat("light.linear", 0.09f);
     lightingShader.setFloat("light.quadratic", 0.032f);
-    
+    lightingShader.setVec3("light.position", camera.camera_pos);
+    lightingShader.setVec3("light.direction", camera.camera_front);
+    lightingShader.setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
+
     // setting specular and diffuse maps
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, diffuseMap);
@@ -228,7 +232,9 @@ int main()
         lightingShader.use();
         // lightingShader.setVec3("lightPos", lightPos);
         lightingShader.setVec3("viewPos", camera.camera_pos);
-
+        lightingShader.setVec3("light.position", camera.camera_pos);
+        lightingShader.setVec3("light.direction", camera.camera_front);
+        lightingShader.setFloat("light.cutOff", glm::cos(glm::radians(12.5f)));
         // setting light color over time
         glm::vec3 lightColor;
         lightColor = glm::vec3(1);
@@ -241,7 +247,7 @@ int main()
 
         // lightingShader.setVec3("light.ambient", ambientColor);
         // lightingShader.setVec3("light.diffuse", diffuseColor);
-        lightingShader.setVec3("light.position", lightPos);
+        // lightingShader.setVec3("light.position", lightPos);
 
         // view/projection transformations
         // glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -270,26 +276,26 @@ int main()
 
 
 
-        // // also draw the lamp object
-        light_source_cube_shader.use();
-        light_source_cube_shader.setMat4("projection", projection);
-        light_source_cube_shader.setMat4("view", view);
-        light_source_cube_shader.setVec3("lightColor", lightColor);
+        // // // also draw the lamp object
+        // light_source_cube_shader.use();
+        // light_source_cube_shader.setMat4("projection", projection);
+        // light_source_cube_shader.setMat4("view", view);
+        // light_source_cube_shader.setVec3("lightColor", lightColor);
 
 
 
-        // update lightpos
-        float time = glfwGetTime();
-        lightPos.x = sin(time) / 2.0 + 0.5f;
-        lightPos.y = cos(time) / 2.0 + 0.5f;
+        // // update lightpos
+        // float time = glfwGetTime();
+        // lightPos.x = sin(time) / 2.0 + 0.5f;
+        // lightPos.y = cos(time) / 2.0 + 0.5f;
 
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPos);
-        model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-        light_source_cube_shader.setMat4("model", model);
+        // model = glm::mat4(1.0f);
+        // model = glm::translate(model, lightPos);
+        // model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+        // light_source_cube_shader.setMat4("model", model);
 
-        glBindVertexArray(lightCubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        // glBindVertexArray(lightCubeVAO);
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
 
         // check and call events and swap the buffers
         glfwSwapBuffers(window);
