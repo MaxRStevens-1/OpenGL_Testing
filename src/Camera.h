@@ -69,6 +69,17 @@ public:
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
             camera_pos += glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed;
         }
+
+
+
+        if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+            camera_pos -= camera_speed * camera_up;
+        }
+
+
+        if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
+            camera_pos += camera_speed * camera_up;
+        }    
     }
 
     void processInputForGroundCamera(GLFWwindow *window) {

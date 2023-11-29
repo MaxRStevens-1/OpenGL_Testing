@@ -160,7 +160,7 @@ int main()
     unsigned int specularMap;
     specularMap = generateTextureFromPath("./textures/simple/container2_specular.png", specularMap);
     unsigned int emmissionMap;
-    emmissionMap = generateTextureFromPath("./textures/simple/matrix.jpg", emmissionMap);
+    // emmissionMap = generateTextureFromPath("./textures/simple/matrix.jpg", emmissionMap);
 
     // create camera;
     camera = Camera(SCR_WIDTH, SCR_HEIGHT);
@@ -178,26 +178,44 @@ int main()
     // lightingShader.setVec3("material.diffuse", 0.0f, 0.50980392f, 0.50980392f);
     lightingShader.setInt("material.diffuse", 0);
     lightingShader.setInt("material.specular", 1);
-    lightingShader.setInt("material.emission", 2);
+    // lightingShader.setInt("material.emission", 2);
 
     lightingShader.setFloat("material.shininess", .25f*(BASE_SHINY_MULTIPLE));
     
     // setting light material 
     // lightingShader.setVec3("light.ambient", 1.0f, 1.0f, 1.0f);
-    lightingShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+    lightingShader.setVec3("light.ambient", 0.1f, 0.1f, 0.1f);
     // lightingShader.setVec3("light.diffuse", 1.0f, 1.0f, 1.0f);
     lightingShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f); // darkened
     lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
     // lightingShader.setVec3("light.specular", 0.50196078f, 0.50196078f, 0.50196078f);
     lightingShader.setVec3("light.position", lightPos);
-
+    // lightingShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f);
+    lightingShader.setFloat("light.constant", 1.0f);
+    lightingShader.setFloat("light.linear", 0.09f);
+    lightingShader.setFloat("light.quadratic", 0.032f);
+    
     // setting specular and diffuse maps
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, diffuseMap);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, specularMap);
-    glActiveTexture(GL_TEXTURE2);
-    glBindTexture(GL_TEXTURE_2D, emmissionMap);
+    // glActiveTexture(GL_TEXTURE2);
+    // glBindTexture(GL_TEXTURE_2D, emmissionMap);
+
+    glm::vec3 cubePositions[] = {
+        glm::vec3( 0.0f, 0.0f, 0.0f),
+        glm::vec3( 2.0f, 5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3( 2.4f, -0.4f, -3.5f),
+        glm::vec3(-1.7f, 3.0f, -7.5f),
+        glm::vec3( 1.3f, -2.0f, -2.5f),
+        glm::vec3( 1.5f, 2.0f, -2.5f),
+        glm::vec3( 1.5f, 0.2f, -1.5f),
+        glm::vec3(-1.3f, 1.0f, -1.5f)
+    };
+
 
     while (!glfwWindowShouldClose(window)) {
         // input
@@ -234,18 +252,31 @@ int main()
 
         // world transformation
         glm::mat4 model = glm::mat4(1.0f);
-        lightingShader.setMat4("model", model);
+        // lightingShader.setMat4("model", model);
 
         // render the cube
         glBindVertexArray(cubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
+        for(unsigned int i = 0; i < 10; i++)
+        {
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, cubePositions[i]);
+            float angle = 20.0f * i;
+            model = glm::rotate(model, glm::radians(angle),
+                glm::vec3(1.0f, 0.3f, 0.5f));
+            lightingShader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
 
-        // also draw the lamp object
+
+        // // also draw the lamp object
         light_source_cube_shader.use();
         light_source_cube_shader.setMat4("projection", projection);
         light_source_cube_shader.setMat4("view", view);
         light_source_cube_shader.setVec3("lightColor", lightColor);
+
+
 
         // update lightpos
         float time = glfwGetTime();
