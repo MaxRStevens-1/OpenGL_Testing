@@ -209,7 +209,6 @@ int main()
     };
 
     for (int i = 0; i < 4; i++) {
-        std::cout << "pointLights["+std::to_string(i)+"].position";
         lightingShader.setVec3("pointLights["+std::to_string(i)+"].position", pointLightPositions[i]);
         lightingShader.setFloat("pointLights["+std::to_string(i)+"].constant", 1.0f);
         lightingShader.setFloat("pointLights["+std::to_string(i)+"].linear", 0.09f);
@@ -294,10 +293,7 @@ int main()
             lightingShader.setMat4("model", model);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
-
-
-
-        // // // also draw the lamp object
+        // also draw the lamp object
         light_source_cube_shader.use();
         light_source_cube_shader.setMat4("projection", projection);
         light_source_cube_shader.setMat4("view", view);
