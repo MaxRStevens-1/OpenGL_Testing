@@ -13,7 +13,7 @@
                 "src/\\*.cpp",
                 "src/glad.c",
                 "-lglfw3dll",
-                "-lassimp-vc143-mt",
+                // "-lassimp-vc143-mtd",
                 "-o",
                 "${workspaceFolder}/myprogram.exe"
             ],

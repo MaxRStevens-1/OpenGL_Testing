@@ -92,10 +92,7 @@ int generateTextureFromPath(std::string path, unsigned int texture) {
             std::cout << "Failed to load texture" << std::endl;
         }
     }
-
-
     stbi_image_free(data);
-
     return texture;
 }
 
