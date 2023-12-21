@@ -1,3 +1,6 @@
+#ifndef MAIN_CPP
+#define MAIN_CPP
+
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
@@ -14,6 +17,7 @@
 #include "stb_image.h"
 #include "Camera.h"
 #include "Model.h"
+#include "Mesh.h"
 
 
 const unsigned int SCR_WIDTH = 800;
@@ -49,14 +53,16 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 
 int main()
 {
+    std::cout << "LOADED IN" << std::endl;
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
 
-    GLFWwindow* window = glfwCreateWindow(800, 600, "Learning OpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(1, 1, "Learning OpenGL", NULL, NULL);
+    // GLFWwindow* window = glfwCreateWindow(800, 600, "Learning OpenGL", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW Window" << std::endl;
         return -1;
@@ -78,91 +84,69 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
-    std::string path = std::string("./models/backpack/backpack.obj");
+    // path from models folder to desired obj files...
+    std::string path = std::string("./src/models/backpack/backpack.obj");
 
-    char* path_char = new char[path.length() + 1];
-    std::copy(path.begin(), path.end(), path_char);
 
-    Model local_model(path_char);
+    Model local_model(path);
+    std::cout << "CREATED MODEL";
+    std::cin >> path;
     // create camera;
     camera = Camera(SCR_WIDTH, SCR_HEIGHT);
 
     // loading in shaders from file
-    Shader lightingShader("multiLight");
-    Shader light_source_cube_shader("lightSource");
+    Shader lightingShader("model_loading");
+    // Shader light_source_cube_shader("lightSource");+
 
     lightingShader.use();
-    lightingShader.setVec3("viewPos", camera.camera_pos);
+    // lightingShader.setVec3("viewPos", camera.camera_pos);
 
-    const int BASE_SHINY_MULTIPLE = 128;
-    lightingShader.setInt("material.diffuse", 0);
-    lightingShader.setInt("material.specular", 1);
+    // const int BASE_SHINY_MULTIPLE = 128;
+    // lightingShader.setInt("material.diffuse", 0);
+    // lightingShader.setInt("material.specular", 1);
 
-    lightingShader.setFloat("material.shininess", .25f*(BASE_SHINY_MULTIPLE));
+    // lightingShader.setFloat("material.shininess", .25f*(BASE_SHINY_MULTIPLE));
     
     // setting light structs
 
-    // setting Spot Light
-    lightingShader.setVec3("spotLight.position", 0,0,0);
-    lightingShader.setFloat("spotLight.constant", 1.0f);
-    lightingShader.setFloat("spotLight.linear", 0.09f);
-    lightingShader.setFloat("spotLight.quadratic", 0.032f);
+    // // setting Spot Light
+    // lightingShader.setVec3("spotLight.position", 0,0,0);
+    // lightingShader.setFloat("spotLight.constant", 1.0f);
+    // lightingShader.setFloat("spotLight.linear", 0.09f);
+    // lightingShader.setFloat("spotLight.quadratic", 0.032f);
     
-    lightingShader.setVec3("spotLight.ambient", 0.1f, 0.1f, 0.1f);
-    lightingShader.setVec3("spotLight.diffuse", 0.5f, 0.5f, 0.5f); 
-    lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+    // lightingShader.setVec3("spotLight.ambient", 0.1f, 0.1f, 0.1f);
+    // lightingShader.setVec3("spotLight.diffuse", 0.5f, 0.5f, 0.5f); 
+    // lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
 
-    lightingShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-    lightingShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
+    // lightingShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+    // lightingShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
 
 
-    // setting Directional Light
-    lightingShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-    lightingShader.setVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
-    lightingShader.setVec3("dirLight.diffuse", 0.3f, 0.3f, 0.3f); 
-    lightingShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
+    // // setting Directional Light
+    // lightingShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+    // lightingShader.setVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
+    // lightingShader.setVec3("dirLight.diffuse", 0.3f, 0.3f, 0.3f); 
+    // lightingShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
 
-    // setting the pointlight structs
-    glm::vec3 pointLightPositions[] = {
-        glm::vec3( 0.7f, 0.2f, 2.0f),
-        glm::vec3( 2.3f, -3.3f, -4.0f),
-        glm::vec3(-4.0f, 2.0f, -12.0f),
-        glm::vec3( 0.0f, 0.0f, -3.0f)
-    };
+    // // setting the pointlight structs
+    // glm::vec3 pointLightPositions[] = {
+    //     glm::vec3( 0.7f, 0.2f, 2.0f),
+    //     glm::vec3( 2.3f, -3.3f, -4.0f),
+    //     glm::vec3(-4.0f, 2.0f, -12.0f),
+    //     glm::vec3( 0.0f, 0.0f, -3.0f)
+    // };
 
-    for (int i = 0; i < 4; i++) {
-        lightingShader.setVec3("pointLights["+std::to_string(i)+"].position", pointLightPositions[i]);
-        lightingShader.setFloat("pointLights["+std::to_string(i)+"].constant", 1.0f);
-        lightingShader.setFloat("pointLights["+std::to_string(i)+"].linear", 0.09f);
-        lightingShader.setFloat("pointLights["+std::to_string(i)+"].quadratic", 0.032f);
+    // for (int i = 0; i < 4; i++) {
+    //     lightingShader.setVec3("pointLights["+std::to_string(i)+"].position", pointLightPositions[i]);
+    //     lightingShader.setFloat("pointLights["+std::to_string(i)+"].constant", 1.0f);
+    //     lightingShader.setFloat("pointLights["+std::to_string(i)+"].linear", 0.09f);
+    //     lightingShader.setFloat("pointLights["+std::to_string(i)+"].quadratic", 0.032f);
         
-        lightingShader.setVec3("pointLights["+std::to_string(i)+"].ambient", 0.1f, 0.1f, 0.1f);
-        lightingShader.setVec3("pointLights["+std::to_string(i)+"].diffuse", 0.5f, 0.5f, 0.5f);
-        lightingShader.setVec3("pointLights["+std::to_string(i)+"].specular", 1.0f, 1.0f, 1.0f);
-    }
-
-
-    // setting specular and diffuse maps
-    // glActiveTexture(GL_TEXTURE0);
-    // glBindTexture(GL_TEXTURE_2D, diffuseMap);
-    // glActiveTexture(GL_TEXTURE1);
-    // glBindTexture(GL_TEXTURE_2D, specularMap);
-    // glActiveTexture(GL_TEXTURE2);
-    // glBindTexture(GL_TEXTURE_2D, emmissionMap);
-    
-
-    glm::vec3 cubePositions[] = {
-        glm::vec3( 0.0f, 0.0f, 0.0f),
-        glm::vec3( 2.0f, 5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f),
-        glm::vec3(-3.8f, -2.0f, -12.3f),
-        glm::vec3( 2.4f, -0.4f, -3.5f),
-        glm::vec3(-1.7f, 3.0f, -7.5f),
-        glm::vec3( 1.3f, -2.0f, -2.5f),
-        glm::vec3( 1.5f, 2.0f, -2.5f),
-        glm::vec3( 1.5f, 0.2f, -1.5f),
-        glm::vec3(-1.3f, 1.0f, -1.5f)
-    };
+    //     lightingShader.setVec3("pointLights["+std::to_string(i)+"].ambient", 0.1f, 0.1f, 0.1f);
+    //     lightingShader.setVec3("pointLights["+std::to_string(i)+"].diffuse", 0.5f, 0.5f, 0.5f);
+    //     lightingShader.setVec3("pointLights["+std::to_string(i)+"].specular", 1.0f, 1.0f, 1.0f);
+    // }
 
 
     while (!glfwWindowShouldClose(window)) {
@@ -174,9 +158,9 @@ int main()
 
         // be sure to activate shader when setting uniforms/drawing objects
         lightingShader.use();
-        lightingShader.setVec3("spotLight.position", camera.camera_pos);
-        lightingShader.setVec3("viewPos", camera.camera_pos);
-        lightingShader.setVec3("spotLight.direction", camera.camera_front);
+        // lightingShader.setVec3("spotLight.position", camera.camera_pos);
+        // lightingShader.setVec3("viewPos", camera.camera_pos);
+        // lightingShader.setVec3("spotLight.direction", camera.camera_front);
 
 
         // setting light color over time
@@ -195,6 +179,7 @@ int main()
         lightingShader.setMat4("model", model);
         local_model.Draw(lightingShader);
 
+        // std::cout >> "has_output";
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
@@ -206,3 +191,4 @@ int main()
     return 0;
 }
 
+#endif

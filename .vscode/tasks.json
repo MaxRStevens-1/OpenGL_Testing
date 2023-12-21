@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "cppbuild",
+            "type": "shell",
             "label": "C/C++: g++.exe build active file",
             "command": "g++",
             "args": [
@@ -11,11 +11,10 @@
                 "-I./include",
                 "-L./lib",
                 "src/\\*.cpp",
-                "src/glad.c",
+                "src/\\*.c",
                 "-lglfw3dll",
-                // "-lassimp-vc143-mtd",
                 "-o",
-                "${workspaceFolder}/myprogram.exe"
+                "myprogram",
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -27,6 +26,7 @@
                 "kind": "build",
                 "isDefault": true
             },
+            "detail": "compiler: g++"
         }
     ]
 }

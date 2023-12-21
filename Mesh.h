@@ -1,4 +1,4 @@
-#ifndef MESH_H
+/*#ifndef MESH_H
 #define MESH_H
 
 #include <glad/glad.h>
@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "Shader.h"
-
 
 struct Vertex {
     glm::vec3 Position;
@@ -26,7 +25,7 @@ struct Texture {
 
 
 class Mesh {
-    public:
+    public: 
         // mesh data
         std::vector<Vertex> vertices;
         std::vector<unsigned int> indices;
@@ -65,7 +64,6 @@ class Mesh {
             glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
             glBindVertexArray(0);
         }
-
     private:
         // render data
         unsigned int VAO, VBO, EBO;
@@ -95,4 +93,6 @@ class Mesh {
         }
 };
 
-#endif
+
+#endif 
+*/
