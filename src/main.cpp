@@ -61,8 +61,8 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
 
-    GLFWwindow* window = glfwCreateWindow(1, 1, "Learning OpenGL", NULL, NULL);
-    // GLFWwindow* window = glfwCreateWindow(800, 600, "Learning OpenGL", NULL, NULL);
+    // GLFWwindow* window = glfwCreateWindow(1, 1, "Learning OpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(800, 600, "Learning OpenGL", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW Window" << std::endl;
         return -1;
@@ -85,12 +85,12 @@ int main()
     glfwSetScrollCallback(window, scroll_callback);
 
     // path from models folder to desired obj files...
-    std::string path = std::string("./src/models/backpack/backpack.obj");
+    std::string path = std::string("backpack/backpack.obj");
 
 
     Model local_model(path);
     std::cout << "CREATED MODEL";
-    std::cin >> path;
+    // std::cin >> path;
     // create camera;
     camera = Camera(SCR_WIDTH, SCR_HEIGHT);
 
