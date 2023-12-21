@@ -30,7 +30,9 @@ class Model {
         }
 
         void Draw(Shader &shader) {
-
+            for (unsigned int i = 0; i < meshes.size(); i++) {
+                meshes[i].Draw(shader);
+            }
         }
     private:
         std::vector<Mesh> meshes;
@@ -49,9 +51,8 @@ class Model {
                 if (!reader.Error().empty()) {
                     std::cerr << "TinyObjReader: " << reader.Error();
                 }
-                // exit(1);
+                exit(1);
             }
-            std::cout << "PARSED" << path << std::endl;
 
             if (!reader.Warning().empty()) {
                 std::cout << "TinyObjReader: " << reader.Warning();
@@ -63,16 +64,15 @@ class Model {
 
             // loops over shapes
             for (size_t s = 0; s < shapes.size(); s++) {
-                processMesh(attrib, shapes[s], materials);
+                process_mesh(attrib, shapes[s], materials);
             }
         }
 
-        void processMesh(tinyobj::attrib_t attrib, tinyobj::shape_t shape, std::vector<tinyobj::material_t> materials)
+        void process_mesh(tinyobj::attrib_t attrib, tinyobj::shape_t shape, std::vector<tinyobj::material_t> materials)
         {
-            std::cout << "SIZE OF MATERIALOS IS:" << materials.size() << std::endl;
+            // std::cout << "SIZE OF MATERIALOS IS:" << materials.size() << std::endl;
 
             std::vector<Vertex> vertices;
-            std::vector<unsigned int> indices;
             std::vector<Texture> textures;
             
             std::map<std::string, bool> texture_names;
@@ -85,6 +85,7 @@ class Model {
                 for (size_t v = 0; v < fv; v++) {
                     Vertex local_vertex;
                     // gets vertex
+                    
                     tinyobj::index_t idx = shape.mesh.indices[index_offset + v];
                     tinyobj::real_t vx = attrib.vertices[3*size_t(idx.vertex_index)+0];
                     tinyobj::real_t vy = attrib.vertices[3*size_t(idx.vertex_index)+1];
@@ -119,23 +120,6 @@ class Model {
 
                 // per face material
                 tinyobj::material_t local_material = materials[shape.mesh.material_ids[f]];
-                // if (local_material.)
-                Texture local_texture;
-                // std::cout << "READING TEX NAMES" << std::endl;
-                if (texture_names.find(local_material.diffuse_texname) == texture_names.end()) {
-                    texture_names[local_material.diffuse_texname] = true;
-                } 
-                if (texture_names.find(local_material.specular_texname) == texture_names.end()) {
-                    texture_names[local_material.specular_texname] = true;
-                }
-                if (texture_names.find(local_material.normal_texname) == texture_names.end()) {
-                    texture_names[local_material.normal_texname] = true;
-                }
-                // std::cout << local_material.diffuse_texname << std::endl;
-                // std::cout << local_material.specular_texname << std::endl;
-                // std::cout << local_material.bump_texname << std::endl;
-                // std::cout << local_material.normal_texname << std::endl;
-                
             }
 
             for (size_t i = 0; i < materials.size(); i++) {
@@ -144,11 +128,13 @@ class Model {
                     std::string dir = path.substr(0, pos);
                     // get texture of diffuse
                     std::string full_path = MODEL_PATH+dir+"/"+materials[i].diffuse_texname;
-                    std::cout << "attempting to create texture of path: " + full_path << std::endl;
-                    texture_from_file(full_path);
+                    // std::cout << "attempting to create texture of path: " + full_path << std::endl;
+                    // unsigned int texture_id = texture_from_file(full_path);
                 }
             }
-
+            // now create mesh and add to mesh list
+            Mesh mesh(vertices, textures);
+            meshes.push_back(mesh);
         }
 
         unsigned int texture_from_file(std::string path) {
@@ -158,8 +144,7 @@ class Model {
 
             int width, height, nrComponents;
             unsigned char *data = stbi_load(path.c_str(), &width, &height, &nrComponents, 0);
-            if (data)
-            {
+            if (data) {
                 GLenum format;
                 if (nrComponents == 1)
                     format = GL_RED;
@@ -179,8 +164,7 @@ class Model {
 
                 stbi_image_free(data);
             }
-            else
-            {
+            else {
                 std::cout << "Texture failed to load at path: " << path << std::endl;
                 stbi_image_free(data);
             }

@@ -51,7 +51,6 @@ public:
         float camera_speed = 2.5f * delta_time;
 
 
-
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
             camera_pos += camera_speed * camera_front;
         } 

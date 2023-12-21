@@ -87,18 +87,20 @@ int main()
     // path from models folder to desired obj files...
     std::string path = std::string("backpack/backpack.obj");
 
-
     Model local_model(path);
-    std::cout << "CREATED MODEL";
+    std::cout << "CREATED MODEL" << std::endl;
+
+    Shader lightingShader("model_loading");
+    lightingShader.use();
+    std::cout << "CREATED SHADER" << std::endl;
+
     // std::cin >> path;
     // create camera;
     camera = Camera(SCR_WIDTH, SCR_HEIGHT);
 
     // loading in shaders from file
-    Shader lightingShader("model_loading");
     // Shader light_source_cube_shader("lightSource");+
 
-    lightingShader.use();
     // lightingShader.setVec3("viewPos", camera.camera_pos);
 
     // const int BASE_SHINY_MULTIPLE = 128;
@@ -153,7 +155,7 @@ int main()
         // input
         processInput(window, lightingShader);
 
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClearColor(0.4f, 0.6f, 0.3f, 0.5f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // also clear the depth buffer now!
 
         // be sure to activate shader when setting uniforms/drawing objects
@@ -177,7 +179,9 @@ int main()
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
         lightingShader.setMat4("model", model);
+        // std::cout << model[0][0] << std::endl;
         local_model.Draw(lightingShader);
+
 
         // std::cout >> "has_output";
         glfwSwapBuffers(window);

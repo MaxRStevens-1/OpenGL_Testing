@@ -20,7 +20,6 @@ public:
         std::vector<std::string> shader_files_raw = loadShadersFromDirectory(directoryName);
         const char* vertexShaderSource = shader_files_raw[0].c_str();
         const char* fragmentShaderSource = shader_files_raw[1].c_str();
-
         unsigned int vertex, fragment;
         int success;
         char infoLog[512];
