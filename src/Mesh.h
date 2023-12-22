@@ -41,31 +41,33 @@ class Mesh {
         void Draw(Shader &shader) {
             unsigned int diffuseNr = 1;
             unsigned int specularNr = 1;
-            // for(unsigned int i = 0; i < textures.size(); i++)
-            // {
-            //     glActiveTexture(GL_TEXTURE0 + i); // activate texture unit first
-            //     // retrieve texture number (the N in diffuse_textureN)
-            //     std::string number;
-            //     std::string name = textures[i].type;
-            //     if(name == "texture_diffuse") {
-            //         number = std::to_string(diffuseNr++);
-            //     } else if(name == "texture_specular") {
-            //         number = std::to_string(specularNr++);
-            //         shader.setFloat(("material." + name + number).c_str(), i);
-            //         glBindTexture(GL_TEXTURE_2D, textures[i].id);
-            //     }
-            // }
+            for(unsigned int i = 0; i < textures.size(); i++)
+            {
+                glActiveTexture(GL_TEXTURE0 + i); // activate texture unit first
+                // retrieve texture number (the N in diffuse_textureN)
+                std::string number;
+                std::string name = textures[i].type;
+                if(name == "texture_diffuse") {
+                    number = std::to_string(diffuseNr++);
+                } else if(name == "texture_specular") {
+                    number = std::to_string(specularNr++);
+                    glBindTexture(GL_TEXTURE_2D, textures[i].id);
+                }
+                
+                shader.setFloat(("material." + name + number).c_str(), i);
+            }
+            glActiveTexture(GL_TEXTURE0);
+
             // draw mesh
             glBindVertexArray(VAO);
             glDrawArrays(GL_TRIANGLES, 0, vertices.size());
             glBindVertexArray(0);
 
-              GLenum e = glGetError();
+            GLenum e = glGetError();
             if (e != GL_NO_ERROR) {
                 fprintf(stderr, "OpenGL error in \"%s\": %d (%d)\n", "draw arrays", e, e);
                 exit(20);
             }
-            // glBindBuffer(0);
         }
 
     private:

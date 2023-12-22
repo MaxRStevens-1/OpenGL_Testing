@@ -127,7 +127,9 @@ class Model {
                 if (pos != std::string::npos) {
                     std::string dir = path.substr(0, pos);
                     // get texture of diffuse
-                    std::string full_path = MODEL_PATH+dir+"/"+materials[i].diffuse_texname;
+                    std::string diffuse_path = MODEL_PATH+dir+"/"+materials[i].diffuse_texname;
+                    std::vector<Texture> diffuse_textures = load_texture(diffuse_path, "texture_diffuse");
+                    textures.insert(textures.end(), diffuse_textures.begin(), diffuse_textures.end());
                     // std::cout << "attempting to create texture of path: " + full_path << std::endl;
                     // unsigned int texture_id = texture_from_file(full_path);
                 }
@@ -135,6 +137,28 @@ class Model {
             // now create mesh and add to mesh list
             Mesh mesh(vertices, textures);
             meshes.push_back(mesh);
+        }
+
+        std::vector<Texture> load_texture(std::string path, std::string texture_type) {
+            std::vector<Texture> textures;
+            bool skip = false;
+            for (unsigned int i = 0; i < textures_loaded.size(); i++) {
+                if (std::strcmp(textures_loaded[i].path.data(), path.data()) == 0) {
+                    skip = true;
+                    break;
+                }
+            }
+
+            if (!skip) {
+                Texture texture;
+                texture.id = texture_from_file(path);
+                texture.type = texture_type;
+                texture.path = path;
+                textures.push_back(texture);
+                textures_loaded.push_back(texture);
+            }
+
+            return textures;
         }
 
         unsigned int texture_from_file(std::string path) {

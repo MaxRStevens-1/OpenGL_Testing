@@ -11,6 +11,7 @@
 #include <vector>
 #include <cstring>
 #include <cmath>
+#include <chrono>
 
 #include "ShaderUtils.h"
 #include "Shader.h"
@@ -149,7 +150,8 @@ int main()
     //     lightingShader.setVec3("pointLights["+std::to_string(i)+"].diffuse", 0.5f, 0.5f, 0.5f);
     //     lightingShader.setVec3("pointLights["+std::to_string(i)+"].specular", 1.0f, 1.0f, 1.0f);
     // }
-
+    unsigned int num_renders = 0;
+    auto start = std::chrono::high_resolution_clock::now();
 
     while (!glfwWindowShouldClose(window)) {
         // input
@@ -186,6 +188,11 @@ int main()
         // std::cout >> "has_output";
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        auto stop = std::chrono::high_resolution_clock::now();
+        num_renders++;
+        auto difference = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        std::cout << "total time taken is: " << difference.count() << " with a total num frames: " << num_renders << std::endl;
     }
     // glDeleteBuffers(1, &EBO);
 
