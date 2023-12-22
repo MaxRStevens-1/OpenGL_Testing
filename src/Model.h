@@ -66,12 +66,11 @@ class Model {
             for (size_t s = 0; s < shapes.size(); s++) {
                 process_mesh(attrib, shapes[s], materials);
             }
+            std::cout << "Num textures is " << textures_loaded.size() << std::endl;
         }
 
         void process_mesh(tinyobj::attrib_t attrib, tinyobj::shape_t shape, std::vector<tinyobj::material_t> materials)
         {
-            // std::cout << "SIZE OF MATERIALOS IS:" << materials.size() << std::endl;
-
             std::vector<Vertex> vertices;
             std::vector<Texture> textures;
             
@@ -128,10 +127,11 @@ class Model {
                     std::string dir = path.substr(0, pos);
                     // get texture of diffuse
                     std::string diffuse_path = MODEL_PATH+dir+"/"+materials[i].diffuse_texname;
-                    std::vector<Texture> diffuse_textures = load_texture(diffuse_path, "texture_diffuse");
-                    textures.insert(textures.end(), diffuse_textures.begin(), diffuse_textures.end());
-                    // std::cout << "attempting to create texture of path: " + full_path << std::endl;
-                    // unsigned int texture_id = texture_from_file(full_path);
+                    Texture diffuse_textures = load_texture(diffuse_path, "texture_diffuse");
+                    textures.push_back(diffuse_textures);
+                    std::string specular_path = MODEL_PATH + "/"+materials[i].specular_texname;
+                    Texture specular_textures = load_texture(specular_path, "texture_specular");
+                    textures.push_back(specular_textures);
                 }
             }
             // now create mesh and add to mesh list
@@ -139,8 +139,9 @@ class Model {
             meshes.push_back(mesh);
         }
 
-        std::vector<Texture> load_texture(std::string path, std::string texture_type) {
-            std::vector<Texture> textures;
+
+        Texture load_texture(std::string path, std::string texture_type) {
+            Texture texture;
             bool skip = false;
             for (unsigned int i = 0; i < textures_loaded.size(); i++) {
                 if (std::strcmp(textures_loaded[i].path.data(), path.data()) == 0) {
@@ -150,15 +151,13 @@ class Model {
             }
 
             if (!skip) {
-                Texture texture;
                 texture.id = texture_from_file(path);
                 texture.type = texture_type;
                 texture.path = path;
-                textures.push_back(texture);
                 textures_loaded.push_back(texture);
             }
 
-            return textures;
+            return texture;
         }
 
         unsigned int texture_from_file(std::string path) {

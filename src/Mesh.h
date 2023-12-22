@@ -11,6 +11,8 @@
 
 #include "Shader.h"
 
+const int BASE_SHINY_MULTIPLE = 128;
+
 
 struct Vertex {
     glm::vec3 Position;
@@ -41,23 +43,34 @@ class Mesh {
         void Draw(Shader &shader) {
             unsigned int diffuseNr = 1;
             unsigned int specularNr = 1;
+            unsigned int normalNr   = 1;
+            unsigned int bumpNr   = 1;
             for(unsigned int i = 0; i < textures.size(); i++)
             {
                 glActiveTexture(GL_TEXTURE0 + i); // activate texture unit first
                 // retrieve texture number (the N in diffuse_textureN)
                 std::string number;
                 std::string name = textures[i].type;
-                if(name == "texture_diffuse") {
+                if (name == "texture_diffuse") 
                     number = std::to_string(diffuseNr++);
-                } else if(name == "texture_specular") {
+                else if (name == "texture_specular") 
                     number = std::to_string(specularNr++);
-                    glBindTexture(GL_TEXTURE_2D, textures[i].id);
-                }
-                
+                else if (name == "texture_normal")
+                    number = std::to_string(normalNr++);
+                else if (name == "texture_bump")
+                    number = std::to_string(bumpNr++);
                 shader.setFloat(("material." + name + number).c_str(), i);
+                GLenum e = glGetError();
+                if (e != GL_NO_ERROR) {
+                    fprintf(stderr, "OpenGL error in \"%s\": %d (%d)\n", "setting material float", e, e);
+                    exit(20);
+                }
             }
             glActiveTexture(GL_TEXTURE0);
 
+            shader.setFloat("material.shininess", .25f*(BASE_SHINY_MULTIPLE));
+
+            // shader.setFloat("")
             // draw mesh
             glBindVertexArray(VAO);
             glDrawArrays(GL_TRIANGLES, 0, vertices.size());
