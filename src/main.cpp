@@ -54,7 +54,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 
 int main()
 {
-    std::cout << "LOADED IN" << std::endl;
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -62,8 +61,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
 
-    // GLFWwindow* window = glfwCreateWindow(1, 1, "Learning OpenGL", NULL, NULL);
-    GLFWwindow* window = glfwCreateWindow(800, 600, "Learning OpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Learning OpenGL", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW Window" << std::endl;
         return -1;
@@ -76,7 +74,7 @@ int main()
 
     glEnable(GL_DEPTH_TEST);
 
-    glViewport(0, 0, 800, 600);
+    glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
@@ -95,11 +93,11 @@ int main()
     lightingShader.use();
     std::cout << "CREATED SHADER" << std::endl;
 
-    // create camera;
+    // create camera
     camera = Camera(SCR_WIDTH, SCR_HEIGHT);
 
     // setting light structs
-    // // setting Spot Light
+    // setting Spot Light
     lightingShader.setVec3("spotLight.position", 0,0,0);
     lightingShader.setFloat("spotLight.constant", 1.0f);
     lightingShader.setFloat("spotLight.linear", 0.09f);
@@ -124,13 +122,12 @@ int main()
     auto start = std::chrono::high_resolution_clock::now();
 
     while (!glfwWindowShouldClose(window)) {
-        // input
         processInput(window, lightingShader);
 
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // also clear the depth buffer now!
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // be sure to activate shader when setting uniforms/drawing objects
+        // setting up shader lighting uniforms
         lightingShader.use();
         lightingShader.setVec3("spotLight.position", camera.camera_pos);
         lightingShader.setVec3("viewPos", camera.camera_pos);
@@ -141,11 +138,11 @@ int main()
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view", view);
 
-        // render the loaded model
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
         lightingShader.setMat4("model", model);
+        // render the loaded model
         local_model.Draw(lightingShader);
 
 
