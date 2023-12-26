@@ -73,6 +73,7 @@ int main()
     }
 
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);  
 
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
@@ -89,7 +90,7 @@ int main()
     Model local_model(path);
     std::cout << "CREATED MODEL" << std::endl;
 
-    Shader lightingShader("obj_material");
+    Shader lightingShader("depth_test");
     lightingShader.use();
     std::cout << "CREATED SHADER" << std::endl;
 
@@ -116,6 +117,8 @@ int main()
     lightingShader.setVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
     lightingShader.setVec3("dirLight.diffuse", 0.3f, 0.3f, 0.3f); 
     lightingShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
+
+
 
 
     unsigned int num_renders = 0;
