@@ -7,6 +7,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
 #include <iostream>
 #include <vector>
 #include <cstring>
@@ -16,15 +20,15 @@
 #include "ShaderUtils.h"
 #include "Shader.h"
 #include "stb_image.h"
-#include "Camera.h"
+// #include "Camera.h"
 #include "Model.h"
 #include "Mesh.h"
-
+#include "AccelerationCamera.h"
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-Camera camera;
+AccelerationCamera camera;
 
 float opacity = 0.2f;
 
@@ -73,7 +77,7 @@ int main()
     }
 
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);  
+    // glDepthFunc(GL_LESS);  
 
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
@@ -90,12 +94,12 @@ int main()
     Model local_model(path);
     std::cout << "CREATED MODEL" << std::endl;
 
-    Shader lightingShader("depth_test");
+    Shader lightingShader("model_loading");
     lightingShader.use();
     std::cout << "CREATED SHADER" << std::endl;
 
     // create camera
-    camera = Camera(SCR_WIDTH, SCR_HEIGHT);
+    camera = AccelerationCamera(SCR_WIDTH, SCR_HEIGHT);
 
     // setting light structs
     // setting Spot Light
@@ -118,6 +122,7 @@ int main()
     lightingShader.setVec3("dirLight.diffuse", 0.3f, 0.3f, 0.3f); 
     lightingShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
 
+    // Assimp::Importer importer;
 
 
 
