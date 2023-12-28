@@ -20,15 +20,15 @@
 #include "ShaderUtils.h"
 #include "Shader.h"
 #include "stb_image.h"
-#include "Camera.h"
+// #include "Camera.h"
 #include "Model.h"
 #include "Mesh.h"
-
+#include "AccelerationCamera.h"
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
-Camera camera;
+AccelerationCamera camera;
 
 float opacity = 0.2f;
 
@@ -99,7 +99,7 @@ int main()
     std::cout << "CREATED SHADER" << std::endl;
 
     // create camera
-    camera = Camera(SCR_WIDTH, SCR_HEIGHT);
+    camera = AccelerationCamera(SCR_WIDTH, SCR_HEIGHT);
 
     // setting light structs
     // setting Spot Light
