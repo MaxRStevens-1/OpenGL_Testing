@@ -21,9 +21,12 @@
 #include "Shader.h"
 #include "stb_image.h"
 // #include "Camera.h"
-#include "Model.h"
+#include "model_animation.h"
 #include "Mesh.h"
 #include "AccelerationCamera.h"
+#include "Animation.hpp"
+#include "filesystem.h"
+#include "Animator.hpp"
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -89,38 +92,44 @@ int main()
     glfwSetScrollCallback(window, scroll_callback);
 
     // path from models folder to desired obj files...
-    std::string path = std::string("backpack/backpack.obj");
+    std::string path = std::string("./src/models/dancing_vampire/dancing_vampire.dae");
 
     Model local_model(path);
     std::cout << "CREATED MODEL" << std::endl;
 
-    Shader lightingShader("model_loading");
+    Shader lightingShader("skeleton_animation");
     lightingShader.use();
     std::cout << "CREATED SHADER" << std::endl;
 
     // create camera
     camera = AccelerationCamera(SCR_WIDTH, SCR_HEIGHT);
 
-    // setting light structs
-    // setting Spot Light
-    lightingShader.setVec3("spotLight.position", 0,0,0);
-    lightingShader.setFloat("spotLight.constant", 1.0f);
-    lightingShader.setFloat("spotLight.linear", 0.09f);
-    lightingShader.setFloat("spotLight.quadratic", 0.032f);
+    // setting up animation
+
+    Animation danceAnimation(FileSystem::getPath("./src/models/dancing_vampire/dancing_vampire.dae"),
+        &local_model);
+    Animator animator(&danceAnimation);
+
+    // // setting light structs
+    // // setting Spot Light
+    // lightingShader.setVec3("spotLight.position", 0,0,0);
+    // lightingShader.setFloat("spotLight.constant", 1.0f);
+    // lightingShader.setFloat("spotLight.linear", 0.09f);
+    // lightingShader.setFloat("spotLight.quadratic", 0.032f);
     
-    lightingShader.setVec3("spotLight.ambient", 0.1f, 0.1f, 0.1f);
-    lightingShader.setVec3("spotLight.diffuse", 0.5f, 0.5f, 0.5f); 
-    lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+    // lightingShader.setVec3("spotLight.ambient", 0.1f, 0.1f, 0.1f);
+    // lightingShader.setVec3("spotLight.diffuse", 0.5f, 0.5f, 0.5f); 
+    // lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
 
-    lightingShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-    lightingShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
+    // lightingShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
+    // lightingShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
 
 
-    // setting Directional Light
-    lightingShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-    lightingShader.setVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
-    lightingShader.setVec3("dirLight.diffuse", 0.3f, 0.3f, 0.3f); 
-    lightingShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
+    // // setting Directional Light
+    // lightingShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+    // lightingShader.setVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
+    // lightingShader.setVec3("dirLight.diffuse", 0.3f, 0.3f, 0.3f); 
+    // lightingShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
 
     // Assimp::Importer importer;
 
@@ -129,22 +138,40 @@ int main()
     unsigned int num_renders = 0;
     auto start = std::chrono::high_resolution_clock::now();
 
-    while (!glfwWindowShouldClose(window)) {
-        processInput(window, lightingShader);
+    float deltaTime = glfwGetTime();
+    float lastFrame = glfwGetTime();
 
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    while (!glfwWindowShouldClose(window)) {
+
+        // per frame logic 
+
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+
+        processInput(window, lightingShader);
+        animator.UpdateAnimation(deltaTime);
+
+
+        glClearColor(0.4f, 0.3f, 0.2f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // setting up shader lighting uniforms
         lightingShader.use();
-        lightingShader.setVec3("spotLight.position", camera.camera_pos);
-        lightingShader.setVec3("viewPos", camera.camera_pos);
-        lightingShader.setVec3("spotLight.direction", camera.camera_front);
+        // lightingShader.setVec3("spotLight.position", camera.camera_pos);
+        // lightingShader.setVec3("viewPos", camera.camera_pos);
+        // lightingShader.setVec3("spotLight.direction", camera.camera_front);
         
         glm::mat4 projection = camera.getProjection();
         glm::mat4 view = camera.getView();
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view", view);
+
+        auto transforms = animator.GetFinalBoneMatrices();
+        for (int i = 0; i < transforms.size(); ++i)
+            lightingShader.setMat4("finalBonesMatrices[" + std::to_string(i) + "]", transforms[i]);
+
 
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
