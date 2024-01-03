@@ -12,6 +12,20 @@
 
 const std::string JOINT_FILEPATH = "./joints_output/";
 
+// taken from github
+template <typename T>
+std::vector<T> flatten(const std::vector<std::vector<T>>& v) {
+    std::size_t total_size = 0;
+    for (const auto& sub : v)
+        total_size += sub.size(); // I wish there was a transform_accumulate
+    std::vector<T> result;
+    result.reserve(total_size);
+    for (const auto& sub : v)
+        result.insert(result.end(), sub.begin(), sub.end());
+    return result;
+}
+
+
 // largely taken from stack overflow
 bool isFloat(std::string myString) {
     std::istringstream iss(myString);
@@ -60,7 +74,7 @@ std::string remove_invalid_char_in_floats(const std::string& input) {
 }
 
 
-std::vector<float> load_joints(std::string filename) {
+std::vector<float> load_joints_single_line(std::string filename) {
     std::ifstream file;
     file.open(JOINT_FILEPATH + filename);
     std::string file_string;
@@ -94,5 +108,47 @@ std::vector<float> load_joints(std::string filename) {
     file.close();
     return positions;
 }
+
+
+
+std::vector<std::vector<float>> load_joints_all_lines(std::string filename) {
+    std::ifstream file;
+    file.open(JOINT_FILEPATH + filename);
+    std::string file_string;
+    if (!file.is_open()) {
+        std::cout << "ERROR: FAILED TO OPEN FILE" << std::endl;
+        return {};
+    }
+    std::vector<std::vector<float>> all_positions;
+
+    while (std::getline(file, file_string)) {
+        // now find location of second :
+        int colon_pos = nthOccurrence(file_string, ":", 2);
+        // removes frame #
+        std::string preparsed_file = file_string.substr(colon_pos);
+        // makes string a just numbers seperated by ,
+        std::string parsed_line = remove_invalid_chars(preparsed_file);
+        // parsed_line = remove_invalid_char_in_floats(parsed_line);
+        std::regex reg("\\s+");
+        std::sregex_token_iterator iter(parsed_line.begin(), parsed_line.end(), reg, -1);
+        std::sregex_token_iterator end;
+        std::vector<std::string> tokenized_pos(iter, end);
+
+
+        std::vector<float> positions;
+        for (std::string token : tokenized_pos) {
+            std::string parsed_token = remove_invalid_char_in_floats(token);
+            if (isFloat(parsed_token)) 
+                positions.push_back(std::stof(parsed_token));
+        }
+        all_positions.push_back(positions);
+    }
+    // tokenized_pos.
+    file.close();
+
+    return all_positions;
+}
+
+
 
 #endif

@@ -99,12 +99,11 @@ int main()
     lightingShader.use();
 
     // now I have the vertices of blazepose model
-    std::vector<float> positions = load_joints("joints_output.txt");
-    for (auto a : positions) {
-        std::cout << to_string(a) << std::endl;
-    }
+    std::vector<std::vector<float>> positions = load_joints_all_lines("jumping_jack.txt");
     std::cout << to_string(positions.size()) << std::endl;
-    float* vertices = &positions[0];
+    std::vector<float> flat_positions = flatten(positions);
+    float* vertices = &flat_positions[0];
+    std::cout << "total num of " << flat_positions.size() << " vertices" << std::endl;
     // path from models folder to desired obj files...
     // std::string path = std::string("./src/models/dancing_vampire/dancing_vampire.dae");
 
@@ -118,7 +117,7 @@ int main()
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * positions.size(), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * flat_positions.size(), vertices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -174,7 +173,10 @@ int main()
 
     float deltaTime = glfwGetTime();
     float lastFrame = glfwGetTime();
+    glPointSize(10);
 
+    unsigned int current_frame = 0;
+    unsigned int starting_pos = 0;
     while (!glfwWindowShouldClose(window)) {
 
         // per frame logic 
@@ -188,7 +190,8 @@ int main()
         // animator.UpdateAnimation(deltaTime);
 
 
-        glClearColor(0.4f, 0.3f, 0.2f, 0.0f);
+        // glClearColor(0.4f, 0.3f, 0.2f, 0.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // setting up shader lighting uniforms
@@ -213,16 +216,27 @@ int main()
         lightingShader.setMat4("model", model);
         // render the loaded model
         // local_model.Draw(lightingShader);
-        glPointSize(10);
 
         glBindVertexArray(VAO); 
-        glDrawArrays(GL_POINTS, 0, positions.size());
 
+        unsigned int ending_pos = positions[current_frame].size()+starting_pos;
 
+        std::cout << "at frame: " << current_frame << " attempting to print vertices from " << starting_pos << " to " << ending_pos << ". " << "frame has size: " << positions[current_frame].size()  << std::endl;
+        glDrawArrays(GL_POINTS, starting_pos, positions[current_frame].size());
+        // glDrawArrays()
         GLenum e = glGetError();
         if (e != GL_NO_ERROR) {
             fprintf(stderr, "OpenGL error in \"%s\": %d (%d)\n", "draw", e, e);
             exit(20);
+        }
+
+        // update animation every 5 frames
+        if (num_renders % 10 == 0) {
+            current_frame = (current_frame + 1) % positions.size();
+            starting_pos += positions[current_frame].size();
+            if (current_frame == 0) {
+                starting_pos = 0;
+            }
         }
 
         glfwSwapBuffers(window);
@@ -236,6 +250,8 @@ int main()
             std::cout << "Has taken " << duration.count() << " mili seconds for 60 frames..." << std::endl;
             start = std::chrono::high_resolution_clock::now();
         }
+
+
     }
 
     glfwTerminate();

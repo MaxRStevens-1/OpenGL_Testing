@@ -15,8 +15,8 @@ const float MOVEMENT_CONSTANT = 2.0f;
 class AccelerationCamera 
 {
 private:
-    float near = 0.1f;
-    float far = 100.0f;
+    float near = 0.01f;
+    float far = 1000.0f;
     float yaw = -90.0f;
     float pitch = 0.0f;
     float zoom = 45.0f;
