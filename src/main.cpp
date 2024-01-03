@@ -16,6 +16,8 @@
 #include <cstring>
 #include <cmath>
 #include <chrono>
+#include <fstream>
+#include <regex>
 
 #include "ShaderUtils.h"
 #include "Shader.h"
@@ -27,9 +29,11 @@
 #include "Animation.hpp"
 #include "filesystem.h"
 #include "Animator.hpp"
+#include "joints_loader_helper.hpp"
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
+
 
 AccelerationCamera camera;
 
@@ -57,7 +61,6 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     camera.processScrollForCamera(xoffset, yoffset);
 }
-
 
 int main()
 {
@@ -91,24 +94,45 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
+    // now I have the vertices of blazepose model
+    std::vector<float> positions = load_joints("joints_output.txt");
+    for (auto a : positions) {
+        std::cout << to_string(a) << std::endl;
+    }
+    std::cout << to_string(positions.size()) << std::endl;
+    float* vertices = &positions[0];
     // path from models folder to desired obj files...
-    std::string path = std::string("./src/models/dancing_vampire/dancing_vampire.dae");
+    // std::string path = std::string("./src/models/dancing_vampire/dancing_vampire.dae");
 
-    Model local_model(path);
-    std::cout << "CREATED MODEL" << std::endl;
+    // Model local_model(path);
+    // std::cout << "CREATED MODEL" << std::endl;
 
-    Shader lightingShader("skeleton_animation");
+    unsigned int VBO, VAO;
+
+    glGenBuffers(1, &VAO);
+    
+    glGenBuffers(1, &VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*positions.size(), vertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    Shader lightingShader("point_shader");
     lightingShader.use();
     std::cout << "CREATED SHADER" << std::endl;
+
+    
 
     // create camera
     camera = AccelerationCamera(SCR_WIDTH, SCR_HEIGHT);
 
     // setting up animation
 
-    Animation danceAnimation(FileSystem::getPath("./src/models/dancing_vampire/dancing_vampire.dae"),
-        &local_model);
-    Animator animator(&danceAnimation);
+    // Animation danceAnimation(FileSystem::getPath("./src/models/dancing_vampire/dancing_vampire.dae"),
+    //     &local_model);
+    // Animator animator(&danceAnimation);
 
     // // setting light structs
     // // setting Spot Light
@@ -151,7 +175,7 @@ int main()
 
 
         processInput(window, lightingShader);
-        animator.UpdateAnimation(deltaTime);
+        // animator.UpdateAnimation(deltaTime);
 
 
         glClearColor(0.4f, 0.3f, 0.2f, 0.0f);
@@ -159,26 +183,28 @@ int main()
 
         // setting up shader lighting uniforms
         lightingShader.use();
+        glDrawArrays(GL_POINTS, 0, 3);
+
         // lightingShader.setVec3("spotLight.position", camera.camera_pos);
         // lightingShader.setVec3("viewPos", camera.camera_pos);
         // lightingShader.setVec3("spotLight.direction", camera.camera_front);
         
-        glm::mat4 projection = camera.getProjection();
-        glm::mat4 view = camera.getView();
-        lightingShader.setMat4("projection", projection);
-        lightingShader.setMat4("view", view);
+        // glm::mat4 projection = camera.getProjection();
+        // glm::mat4 view = camera.getView();
+        // lightingShader.setMat4("projection", projection);
+        // lightingShader.setMat4("view", view);
 
-        auto transforms = animator.GetFinalBoneMatrices();
-        for (int i = 0; i < transforms.size(); ++i)
-            lightingShader.setMat4("finalBonesMatrices[" + std::to_string(i) + "]", transforms[i]);
+        // // auto transforms = animator.GetFinalBoneMatrices();
+        // // for (int i = 0; i < transforms.size(); ++i)
+        // //     lightingShader.setMat4("finalBonesMatrices[" + std::to_string(i) + "]", transforms[i]);
 
 
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
-        lightingShader.setMat4("model", model);
+        // glm::mat4 model = glm::mat4(1.0f);
+        // model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+        // model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
+        // lightingShader.setMat4("model", model);
         // render the loaded model
-        local_model.Draw(lightingShader);
+        // local_model.Draw(lightingShader);
 
 
         glfwSwapBuffers(window);
