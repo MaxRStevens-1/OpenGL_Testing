@@ -94,6 +94,10 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
+
+    Shader lightingShader("point_shader");
+    lightingShader.use();
+
     // now I have the vertices of blazepose model
     std::vector<float> positions = load_joints("joints_output.txt");
     for (auto a : positions) {
@@ -108,19 +112,25 @@ int main()
     // std::cout << "CREATED MODEL" << std::endl;
 
     unsigned int VBO, VAO;
-
-    glGenBuffers(1, &VAO);
-    
+    glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
+    glBindVertexArray(VAO);
+
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float)*positions.size(), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * positions.size(), vertices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    Shader lightingShader("point_shader");
-    lightingShader.use();
+    glBindVertexArray(0); 
+
+    GLenum e = glGetError();
+    if (e != GL_NO_ERROR) {
+        fprintf(stderr, "OpenGL error in \"%s\": %d (%d)\n", "binding buffers", e, e);
+        exit(20);
+    }
+    
     std::cout << "CREATED SHADER" << std::endl;
 
     
@@ -182,30 +192,38 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // setting up shader lighting uniforms
-        lightingShader.use();
-        glDrawArrays(GL_POINTS, 0, 3);
 
         // lightingShader.setVec3("spotLight.position", camera.camera_pos);
         // lightingShader.setVec3("viewPos", camera.camera_pos);
         // lightingShader.setVec3("spotLight.direction", camera.camera_front);
         
-        // glm::mat4 projection = camera.getProjection();
-        // glm::mat4 view = camera.getView();
-        // lightingShader.setMat4("projection", projection);
-        // lightingShader.setMat4("view", view);
+        glm::mat4 projection = camera.getProjection();
+        glm::mat4 view = camera.getView();
+        lightingShader.setMat4("projection", projection);
+        lightingShader.setMat4("view", view);
 
         // // auto transforms = animator.GetFinalBoneMatrices();
         // // for (int i = 0; i < transforms.size(); ++i)
         // //     lightingShader.setMat4("finalBonesMatrices[" + std::to_string(i) + "]", transforms[i]);
 
 
-        // glm::mat4 model = glm::mat4(1.0f);
-        // model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        // model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
-        // lightingShader.setMat4("model", model);
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
+        lightingShader.setMat4("model", model);
         // render the loaded model
         // local_model.Draw(lightingShader);
+        glPointSize(10);
 
+        glBindVertexArray(VAO); 
+        glDrawArrays(GL_POINTS, 0, positions.size());
+
+
+        GLenum e = glGetError();
+        if (e != GL_NO_ERROR) {
+            fprintf(stderr, "OpenGL error in \"%s\": %d (%d)\n", "draw", e, e);
+            exit(20);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
