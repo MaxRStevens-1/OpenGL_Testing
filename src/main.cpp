@@ -36,6 +36,8 @@ const unsigned int SCR_HEIGHT = 600;
 
 const unsigned int ANIMATION_UPDATE_FRAMES = 5;
 
+bool should_stop = false;
+
 AccelerationCamera camera;
 
 float opacity = 0.2f;
@@ -47,6 +49,9 @@ void processInput(GLFWwindow *window, Shader shader) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     } 
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        should_stop = !should_stop;
+    }
 
     camera.processInputForCamera(window);
 }
@@ -100,7 +105,7 @@ int main()
     lightingShader.use();
 
     // now I have the vertices of blazepose model
-    std::vector<std::vector<float>> positions = load_joints_all_lines("spin.txt");
+    std::vector<std::vector<float>> positions = load_joints_all_lines("bow.txt");
     // flatten vertices seperate by time to single list for easy retrieval
     std::vector<float> flat_positions = flatten(positions);
     // path from models folder to desired obj files...
@@ -225,7 +230,7 @@ int main()
         }
 
         // update animation every 5 frames
-        if (num_renders % ANIMATION_UPDATE_FRAMES == 0) {
+        if (num_renders % ANIMATION_UPDATE_FRAMES == 0 && !should_stop) {
             std::cout << "at frame: " << current_frame << " attempting to print vertices from " << starting_pos << " to " << ending_pos << ". " << "frame has size: " << positions[current_frame].size()  << std::endl;
             starting_pos += positions[current_frame].size() / 3;
             current_frame = (current_frame + 1) % positions.size();
