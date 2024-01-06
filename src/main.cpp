@@ -100,7 +100,7 @@ int main()
     lightingShader.use();
 
     // now I have the vertices of blazepose model
-    std::vector<std::vector<float>> positions = load_joints_all_lines("bow.txt");
+    std::vector<std::vector<float>> positions = load_joints_all_lines("spin.txt");
     // flatten vertices seperate by time to single list for easy retrieval
     std::vector<float> flat_positions = flatten(positions);
     // path from models folder to desired obj files...
