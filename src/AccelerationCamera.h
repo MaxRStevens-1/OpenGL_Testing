@@ -9,14 +9,13 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glm/gtx/string_cast.hpp>
 
-const float VELOCITY_MOVEMENT = 0.3f;
-const float MOVEMENT_CONSTANT = 2.0f;
+float VELOCITY_MOVEMENT = 0.2f;
 
 class AccelerationCamera 
 {
 private:
-    float near = 0.01f;
-    float far = 1000.0f;
+    float near = 0.1f;
+    float far = 100.0f;
     float yaw = -90.0f;
     float pitch = 0.0f;
     float zoom = 45.0f;
@@ -25,6 +24,9 @@ private:
     float last_frame = 0.0f; // last frame time
     glm::vec3 velocity = glm::vec3(0.0f, 0.0f, 0.0f);
     
+
+    float MOVEMENT_CONSTANT = 1.0f;
+
     bool first_mouse = true;
 
     int SCR_WIDTH;
@@ -32,7 +34,7 @@ private:
 
 
 public:
-    glm::vec3 camera_pos   = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 camera_pos   = glm::vec3(0.0f, 0.0f, 3.0f);
     glm::vec3 camera_front = glm::vec3(0.0f, 0.0f, -1.0f);
     glm::vec3 camera_up    = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -49,7 +51,7 @@ public:
 
         timeUpdate();
 
-        float camera_speed = MOVEMENT_CONSTANT * delta_time;
+        float camera_speed = 2.5f * delta_time;
 
 
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
