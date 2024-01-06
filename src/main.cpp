@@ -34,6 +34,7 @@
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
+const unsigned int ANIMATION_UPDATE_FRAMES = 5;
 
 AccelerationCamera camera;
 
@@ -99,11 +100,9 @@ int main()
     lightingShader.use();
 
     // now I have the vertices of blazepose model
-    std::vector<std::vector<float>> positions = load_joints_all_lines("jumping_jack.txt");
-    std::cout << to_string(positions.size()) << std::endl;
+    std::vector<std::vector<float>> positions = load_joints_all_lines("bow.txt");
+    // flatten vertices seperate by time to single list for easy retrieval
     std::vector<float> flat_positions = flatten(positions);
-    float* vertices = &flat_positions[0];
-    std::cout << "total num of " << flat_positions.size() << " vertices" << std::endl;
     // path from models folder to desired obj files...
     // std::string path = std::string("./src/models/dancing_vampire/dancing_vampire.dae");
 
@@ -117,7 +116,7 @@ int main()
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * flat_positions.size(), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(float) * flat_positions.size(), &flat_positions[0], GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -166,14 +165,13 @@ int main()
 
     // Assimp::Importer importer;
 
-
-
     unsigned int num_renders = 0;
     auto start = std::chrono::high_resolution_clock::now();
 
     float deltaTime = glfwGetTime();
     float lastFrame = glfwGetTime();
-    glPointSize(10);
+
+    // glLineWidth(10.0f); my gl implementation doesn't support line widths :(
 
     unsigned int current_frame = 0;
     unsigned int starting_pos = 0;
@@ -211,19 +209,15 @@ int main()
 
 
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	
         lightingShader.setMat4("model", model);
         // render the loaded model
         // local_model.Draw(lightingShader);
 
         glBindVertexArray(VAO); 
-
         unsigned int ending_pos = positions[current_frame].size()+starting_pos;
-
-        std::cout << "at frame: " << current_frame << " attempting to print vertices from " << starting_pos << " to " << ending_pos << ". " << "frame has size: " << positions[current_frame].size()  << std::endl;
-        glDrawArrays(GL_POINTS, starting_pos, positions[current_frame].size());
-        // glDrawArrays()
+        glDrawArrays(GL_LINES, starting_pos, positions[current_frame].size()/3);
         GLenum e = glGetError();
         if (e != GL_NO_ERROR) {
             fprintf(stderr, "OpenGL error in \"%s\": %d (%d)\n", "draw", e, e);
@@ -231,9 +225,10 @@ int main()
         }
 
         // update animation every 5 frames
-        if (num_renders % 10 == 0) {
+        if (num_renders % ANIMATION_UPDATE_FRAMES == 0) {
+            std::cout << "at frame: " << current_frame << " attempting to print vertices from " << starting_pos << " to " << ending_pos << ". " << "frame has size: " << positions[current_frame].size()  << std::endl;
+            starting_pos += positions[current_frame].size() / 3;
             current_frame = (current_frame + 1) % positions.size();
-            starting_pos += positions[current_frame].size();
             if (current_frame == 0) {
                 starting_pos = 0;
             }
