@@ -2,4 +2,4 @@ This is my personal repo for following along with the openGL tutorial, with a mi
 
 Here are some fun examples:
 
-Me spinning ![WHEEE](https://github.com/MaxRStevens-1/OpenGL_Testing/blob/skeleton_blazepose/git_gifs/sping.gif)
+![WHEEE](https://github.com/MaxRStevens-1/OpenGL_Testing/blob/skeleton_blazepose/git_gifs/sping.gif)
