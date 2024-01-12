@@ -10,6 +10,8 @@
 #include <regex>
 #include <sstream>
 
+#include "joint_utils.h"
+
 const std::string JOINT_FILEPATH = "./joints_output/";
 
 // taken from github
@@ -115,6 +117,97 @@ std::vector<float> load_joints_single_line(std::string filename) {
 
     file.close();
     return positions;
+}
+
+
+
+std::unordered_map<std::string, matrix> matrices_from_line(std::string line) {
+    // skip past frame info
+    int colon_pos = nthOccurrence(line, ":", 1);
+    std::string preparsed_file = line.substr(colon_pos);
+
+    std::regex between_brackets("\\{([^\\}]*)\\}");
+    std::sregex_iterator iterator(preparsed_file.begin(), preparsed_file.end(), between_brackets);
+    std::sregex_iterator end;
+    std::vector<std::string> martices;    
+    while (iterator != end) {
+        std::smatch match = *iterator;
+        martices.push_back(match[1].str());
+        ++iterator;
+    }
+
+    // now you have the stored positions, get the names
+    std::vector<std::string> names;
+    std::regex between_space_and_colon("\\s([^\\s]+):");
+    iterator = std::sregex_iterator(preparsed_file.begin(), preparsed_file.end(), between_space_and_colon);
+    while (iterator != end) {
+        std::smatch match = *iterator;
+        names.push_back(match[1].str());
+        ++iterator;
+    }
+
+
+
+    std::regex between_square_paren("\\[([^\\]]*)\\]");
+    // for each matrix, split into rows, then split into cells
+    std::vector<matrix> real_matrices;
+    for (std::string mat : martices) {
+        std::sregex_iterator row_iter  = std::sregex_iterator(mat.begin(), mat.end(), between_square_paren);
+        std::vector<std::vector<float>> num_mat;
+        while (row_iter != end) {
+            std::smatch match = *row_iter;
+            std::string row = match[1].str();
+            std::stringstream floats(row);
+            std::vector<float> num_row;
+            float i;
+            while (floats >> i) {
+                num_row.push_back(i);
+                if (floats.peek() == ',') 
+                    floats.ignore();
+            }
+            num_mat.push_back(num_row);
+            ++row_iter;
+        }
+        matrix local_matrix(num_mat);
+        real_matrices.push_back(local_matrix);
+    }
+
+
+    std::unordered_map<std::string, matrix> joint_matrix_map;
+    for (unsigned int i = 0; i < names.size(); i++) {
+        std::string name = names[i];
+        matrix matrix = real_matrices[i];
+        std::cout << "name is: " << name << std::endl;
+        std::cout << matrix.to_single_line_string() << std::endl;
+        joint_matrix_map[name] = matrix;
+    }
+
+    return joint_matrix_map;
+}
+
+
+std::tuple<bodymodel, std::vector<std::unordered_map<std::string, matrix>>> load_blaze_model_from_file(std::string filename) {
+    std::ifstream file;
+    std::string file_string;
+    file.open(JOINT_FILEPATH + filename);
+    if (!file.is_open()) {
+        std::cout << JOINT_FILEPATH + filename << std::endl;
+        std::cout << "ERROR: FAILED TO OPEN FILE" << std::endl;
+    }
+
+    std::getline(file, file_string);
+    std::vector<position> positions = split_blaze_keypoints(file_string);
+    bodymodel model = create_blaze_body_model();
+    model.set_positions(positions);
+    std::vector<std::unordered_map<std::string, matrix>> matrix_hash_list;
+    while (std::getline(file, file_string)) {
+        matrix_hash_list.push_back(matrices_from_line(file_string));
+    }
+
+
+    file.close();
+    
+    return {model, matrix_hash_list};
 }
 
 

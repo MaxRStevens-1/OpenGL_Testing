@@ -106,12 +106,13 @@ int main()
 
     // now I have the vertices of blazepose model
     std::vector<std::vector<float>> positions = load_joints_all_lines("bow.txt");
+    auto [model, name_matrix_list] = load_blaze_model_from_file("ymca_matrix.txt");
     // flatten vertices seperate by time to single list for easy retrieval
     std::vector<float> flat_positions = flatten(positions);
     // path from models folder to desired obj files...
-    // std::string path = std::string("./src/models/dancing_vampire/dancing_vampire.dae");
+    std::string path = std::string("./src/models/dancing_vampire/dancing_vampire.dae");
 
-    // Model local_model(path);
+    Model local_model(path);
     // std::cout << "CREATED MODEL" << std::endl;
 
     unsigned int VBO, VAO;
@@ -134,6 +135,7 @@ int main()
         exit(20);
     }
     
+
     std::cout << "CREATED SHADER" << std::endl;
 
     
@@ -143,9 +145,9 @@ int main()
 
     // setting up animation
 
-    // Animation danceAnimation(FileSystem::getPath("./src/models/dancing_vampire/dancing_vampire.dae"),
-    //     &local_model);
-    // Animator animator(&danceAnimation);
+    Animation danceAnimation(FileSystem::getPath("./src/models/dancing_vampire/dancing_vampire.dae"),
+        &local_model);
+    Animator animator(&danceAnimation);
 
     // // setting light structs
     // // setting Spot Light
