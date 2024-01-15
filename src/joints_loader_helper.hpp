@@ -177,8 +177,6 @@ std::unordered_map<std::string, matrix> matrices_from_line(std::string line) {
     for (unsigned int i = 0; i < names.size(); i++) {
         std::string name = names[i];
         matrix matrix = real_matrices[i];
-        std::cout << "name is: " << name << std::endl;
-        std::cout << matrix.to_single_line_string() << std::endl;
         joint_matrix_map[name] = matrix;
     }
 
@@ -196,7 +194,7 @@ std::tuple<bodymodel, std::vector<std::unordered_map<std::string, matrix>>> load
     }
 
     std::getline(file, file_string);
-    std::vector<position> positions = split_blaze_keypoints(file_string);
+    std::vector<position> positions = split_blaze_keypoints(file_string, true);
     bodymodel model = create_blaze_body_model();
     model.set_positions(positions);
     std::vector<std::unordered_map<std::string, matrix>> matrix_hash_list;

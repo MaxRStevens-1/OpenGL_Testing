@@ -8,6 +8,12 @@
 #include <deque>
 #include <cmath>
 
+#include <glad/glad.h>
+#include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 struct position {
     float x;
     float y;
@@ -74,6 +80,18 @@ struct position {
             x/mag, y/mag, z/mag
         );
     }
+
+    glm::vec4 to_vec4() {
+        float temp[4] = {
+            x, y, z, 1
+        };
+        return glm::make_vec4(temp);
+    }
+
+    std::vector<float> to_vector() {
+        return {x, y, z};
+    }
+
 };
 
 struct matrix {
@@ -244,8 +262,28 @@ struct matrix {
                 result += "]";
             }
         }
-
         return result;
+    }
+
+    glm::mat4 convert_to_mat4() {
+        float a = mat[0][0];
+        float b = mat[0][1];
+        float c = mat[0][2];
+        float d = mat[1][0];
+        float e = mat[1][1];
+        float f = mat[1][2];
+        float g = mat[2][0];
+        float h = mat[2][1];
+        float i = mat[2][2];
+
+        float temp[16] = {
+            a, b, c, 0,
+            d, e, f, 0,
+            g, h, i, 0,
+            0, 0, 0, 1
+        };
+
+        return glm::make_mat4(temp);
     }
 };
 
@@ -404,14 +442,43 @@ struct bodymodel {
         }
     }
 
+
+    std::vector<std::vector<float>> vectorify_positions() {
+        std::vector<std::vector<float>> pos;
+
+        for (position p : positions) {
+            pos.push_back(p.to_vector());
+        }
+
+        return pos;
+    }
+
+    std::vector<std::vector<float>> vectorify_positions_in_order() {
+        std::vector<std::vector<float>> pos;
+
+        for (joint base : base_joints) {
+            // first step case
+            position p_pos = positions[base.parent_index];
+            position c_pos = positions[base.child_index];
+            pos.push_back(p_pos.to_vector());
+            pos.push_back(p_pos.to_vector());
+            for (joint j : joints_flow[base]) { 
+                p_pos = positions[j.parent_index];
+                c_pos = positions[j.child_index];
+                pos.push_back(p_pos.to_vector());
+                pos.push_back(c_pos.to_vector());
+            }
+        }
+
+        return pos;
+    }
+
+
     std::unordered_map<std::string, matrix> construct_rotations(bodymodel base) {
         std::unordered_map<std::string, matrix> joint_name_to_rotation;
         for (joint j : base_joints) {
             position parent = positions[j.parent_index];
             position child = positions[j.child_index];
-
-            
-
             //now adjust with parent as origin
             child = child.subtract(parent);
 
@@ -419,21 +486,13 @@ struct bodymodel {
             // base parent as origin
             position base_parent = base.positions[base_joint.parent_index];
             position base_child = base.positions[base_joint.child_index];
-            
             base_child = base_child.subtract(base_parent);            
+
             matrix rotation = rodrigues(base_child, child);
 
             // NOTE !! To rotate point A to point B, you will need to normalize point A, and then multiple
             // by the joints base distance. This is to prevent bone lengths changing due to model instability
             joint_name_to_rotation[j.name] = rotation;
-            // now lets test to verify that the rotation was calculated correctly
-            // std::cout << "the normalized new position: " << child.normalize().toString() << 
-            //     " and the normalized rotated position is: " << rotation.dot(base_child.normalize()).toString() << std::endl; 
-                
-            // // testing to see if you can scale the rotation correctly
-            // float bone_length = child.magnitude();
-            // std::cout << "the new pos is " << child.toString() <<
-            //     " the rotated pos is " << rotation.dot(base_child.normalize()).scale(bone_length).toString() << std::endl;
             for (joint next_j : joints_flow[j]) {
                 parent = positions[next_j.parent_index];
                 child = positions[next_j.child_index];
@@ -451,6 +510,49 @@ struct bodymodel {
             }
         }
         return joint_name_to_rotation;
+    }
+
+    bodymodel rotate_self_by_rotations(std::unordered_map<std::string, matrix> rotations, bodymodel new_model) {
+        std::vector<position> local_positions = positions;
+
+        for (joint j : base_joints) {
+            // std::cout << j.name << std::endl;
+            local_positions = rotate_single_joint(j, local_positions, rotations[j.name]);
+            for (joint next_j : joints_flow[j]) {
+                if (next_j.name == "rl_should")
+                    continue;
+                // std::cout << next_j.name << std::endl;
+                local_positions = rotate_single_joint(next_j, local_positions, rotations[next_j.name]);
+            }
+        }
+
+        bodymodel local_model = new_model;
+        local_model.set_positions(local_positions);
+        return local_model;
+
+    }
+
+    std::vector<position> rotate_single_joint(joint j, std::vector<position> local_positions, matrix current_rot) {
+        position parent = local_positions[j.parent_index];
+        position child = local_positions[j.child_index];
+
+
+        position rotated_pos = rotate_points(current_rot, parent, child);
+
+        local_positions[j.child_index] = rotated_pos;
+        // now apply translation downstream
+        position position_diff = rotated_pos.subtract(child);
+        for (joint dj : joints_flow[j]) {                    
+            local_positions[dj.child_index] = local_positions[dj.child_index].add(position_diff);
+        }
+        return local_positions;
+    }
+
+    // return the rotated position, 
+    position rotate_points(matrix rotation, position parent_pos, position child_pos) {
+        // get local position
+        position local_pos = child_pos.subtract(parent_pos).normalize();
+        return rotation.dot(local_pos).scale(child_pos.magnitude()).add(parent_pos);
     }
 
     std::string toString() {
@@ -622,7 +724,7 @@ struct bodymodel {
  * @param positions 
  * @returnstd::vector<joint> 
  */
-bodymodel create_blaze_body_model () {//vector<position> positions) {
+bodymodel create_blaze_body_model () {
 
     int BLAZE_BASE_JOINT = 23;
 
@@ -712,7 +814,7 @@ void print_map(std::unordered_map<joint, position, JointHasher> m) {
     }
 }
 
-position split_string_kp_into_arr (std::string keypoints) {
+position split_string_kp_into_arr (std::string keypoints, bool reverse_y=false) {
     std::string end_bracket = "]";
     std::string comma = ",";
     int start, end = -1*comma.size();
@@ -733,6 +835,8 @@ position split_string_kp_into_arr (std::string keypoints) {
     end = keypoints.find(comma, start);
     current_num = keypoints.substr(start, end-start);
     float y = stof(current_num);
+    if (reverse_y)
+        y*=-1;
 
     start = end + comma.size();
     end = keypoints.find(comma, start);
@@ -743,7 +847,7 @@ position split_string_kp_into_arr (std::string keypoints) {
     return {x, y, z};
 }
 
-std::vector<position> split_blaze_keypoints (std::string kp) {
+std::vector<position> split_blaze_keypoints (std::string kp, bool reverse_y=false) {
     std::string end_bracket = "]";
     std::string comma = ",";
     int start, end = -1*end_bracket.size();
@@ -759,7 +863,7 @@ std::vector<position> split_blaze_keypoints (std::string kp) {
         if (keypoints.find(",") == std::string::npos)
             break;
         positions.push_back(
-            split_string_kp_into_arr(keypoints)
+            split_string_kp_into_arr(keypoints, reverse_y)
         );
     } while (end != -1);
     return positions;

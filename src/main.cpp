@@ -105,15 +105,18 @@ int main()
     lightingShader.use();
 
     // now I have the vertices of blazepose model
-    std::vector<std::vector<float>> positions = load_joints_all_lines("bow.txt");
-    auto [model, name_matrix_list] = load_blaze_model_from_file("ymca_matrix.txt");
+    // std::vector<std::vector<float>> positions = load_joints_all_lines("bow.txt");
+    auto [base_model, name_rotation_list] = load_blaze_model_from_file("ymca_matrix.txt");
+    bodymodel current_model = base_model;
+    std::vector<std::vector<float>> positions = base_model.vectorify_positions_in_order();
     // flatten vertices seperate by time to single list for easy retrieval
     std::vector<float> flat_positions = flatten(positions);
     // path from models folder to desired obj files...
     std::string path = std::string("./src/models/dancing_vampire/dancing_vampire.dae");
 
     Model local_model(path);
-    // std::cout << "CREATED MODEL" << std::endl;
+
+    // current_model = base_model.rotate_self_by_rotations(name_rotation_list[0], current_model);
 
     unsigned int VBO, VAO;
     glGenVertexArrays(1, &VAO);
@@ -179,7 +182,7 @@ int main()
     float lastFrame = glfwGetTime();
 
     // glLineWidth(10.0f); my gl implementation doesn't support line widths :(
-
+    glPointSize(10.0f);
     unsigned int current_frame = 0;
     unsigned int starting_pos = 0;
     while (!glfwWindowShouldClose(window)) {
@@ -223,22 +226,39 @@ int main()
         // local_model.Draw(lightingShader);
 
         glBindVertexArray(VAO); 
-        unsigned int ending_pos = positions[current_frame].size()+starting_pos;
-        glDrawArrays(GL_LINES, starting_pos, positions[current_frame].size()/3);
+        // unsigned int ending_pos = positions[current_frame].size()+starting_pos;
+        glDrawArrays(GL_POINTS, 0, flat_positions.size()/3);
+        glDrawArrays(GL_LINES, 0, flat_positions.size()/3);
         GLenum e = glGetError();
         if (e != GL_NO_ERROR) {
             fprintf(stderr, "OpenGL error in \"%s\": %d (%d)\n", "draw", e, e);
             exit(20);
         }
 
-        // update animation every 5 frames
+        // // update animation every 5 frames
         if (num_renders % ANIMATION_UPDATE_FRAMES == 0 && !should_stop) {
-            std::cout << "at frame: " << current_frame << " attempting to print vertices from " << starting_pos << " to " << ending_pos << ". " << "frame has size: " << positions[current_frame].size()  << std::endl;
-            starting_pos += positions[current_frame].size() / 3;
-            current_frame = (current_frame + 1) % positions.size();
-            if (current_frame == 0) {
-                starting_pos = 0;
-            }
+            std::cout << current_model.toString() << std::endl << std::endl;
+            std::cout << "base model"<<std::endl << base_model.toString() << std::endl;
+            std::cout << "__________________________________" << std::endl;
+            current_model = base_model.rotate_self_by_rotations(name_rotation_list[current_frame], current_model);  
+            flat_positions = flatten(current_model.vectorify_positions_in_order());
+            glBindVertexArray(VAO);
+
+            glBindBuffer(GL_ARRAY_BUFFER, VBO);
+            glBufferData(GL_ARRAY_BUFFER, sizeof(float) * flat_positions.size(), &flat_positions[0], GL_STATIC_DRAW);
+
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+            glEnableVertexAttribArray(0);
+
+            glBindVertexArray(0); 
+            current_frame = (current_frame + 1) % name_rotation_list.size();
+        //     std::cout << "at frame: " << current_frame << " attempting to print vertices from " << starting_pos << " to " << ending_pos << ". " << "frame has size: " << positions[current_frame].size()  << std::endl;
+        //     starting_pos += positions[current_frame].size() / 3;
+        //     current_frame = (current_frame + 1) % positions.size();
+        //     if (current_frame == 0) {
+        //         starting_pos = 0;
+        //     }
+            
         }
 
         glfwSwapBuffers(window);
