@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <deque>
 #include <cmath>
+#include <algorithm>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -75,6 +76,8 @@ struct position {
 
     position normalize() {
         float mag = magnitude();
+        if (mag == 0) 
+            return position(0,0,0);
         
         return position (
             x/mag, y/mag, z/mag
@@ -461,7 +464,7 @@ struct bodymodel {
             position p_pos = positions[base.parent_index];
             position c_pos = positions[base.child_index];
             pos.push_back(p_pos.to_vector());
-            pos.push_back(p_pos.to_vector());
+            pos.push_back(c_pos.to_vector());
             for (joint j : joints_flow[base]) { 
                 p_pos = positions[j.parent_index];
                 c_pos = positions[j.child_index];
@@ -500,7 +503,7 @@ struct bodymodel {
                 child = child.subtract(parent);
                 base_joint = base.name_joint_hash[next_j.name];
                 // base parent as origin
-                 base_parent = base.positions[base_joint.parent_index];
+                base_parent = base.positions[base_joint.parent_index];
                 base_child = base.positions[base_joint.child_index];
 
                 base_child = base_child.subtract(base_parent);       
@@ -516,19 +519,21 @@ struct bodymodel {
         std::vector<position> local_positions = positions;
 
         for (joint j : base_joints) {
-            // std::cout << j.name << std::endl;
-            local_positions = rotate_single_joint(j, local_positions, rotations[j.name]);
+            matrix current_matrix = rotations[j.name];
+            local_positions = rotate_single_joint(j, local_positions, current_matrix);
+            // std::cout << "for joint " + j.name + "\n" << current_matrix.to_string() << std::endl;
             for (joint next_j : joints_flow[j]) {
                 if (next_j.name == "rl_should")
                     continue;
-                // std::cout << next_j.name << std::endl;
-                local_positions = rotate_single_joint(next_j, local_positions, rotations[next_j.name]);
+                current_matrix = current_matrix.dot(rotations[next_j.name]);
+                local_positions = rotate_single_joint(next_j, local_positions, current_matrix);
+
+                // std::cout << "for joint " + next_j.name + "\n" << current_matrix.to_string() << std::endl;
             }
         }
 
-        bodymodel local_model = new_model;
-        local_model.set_positions(local_positions);
-        return local_model;
+        new_model.set_positions(local_positions);
+        return new_model;
 
     }
 
@@ -536,8 +541,11 @@ struct bodymodel {
         position parent = local_positions[j.parent_index];
         position child = local_positions[j.child_index];
 
+        // position local_pos = child.subtract(parent).normalize();
+        // position rotated_pos = current_rot.dot(local_pos).scale(child.magnitude()).add(parent);
 
-        position rotated_pos = rotate_points(current_rot, parent, child);
+        position local_pos = child.subtract(parent);
+        position rotated_pos = current_rot.dot(local_pos).add(parent);
 
         local_positions[j.child_index] = rotated_pos;
         // now apply translation downstream
@@ -545,6 +553,11 @@ struct bodymodel {
         for (joint dj : joints_flow[j]) {                    
             local_positions[dj.child_index] = local_positions[dj.child_index].add(position_diff);
         }
+        // std::cout << "joint: " + j.name;
+        // for (auto pos : local_positions) {
+        //     std::cout << pos.toString();
+        // }
+        // std::cout << std::endl;
         return local_positions;
     }
 

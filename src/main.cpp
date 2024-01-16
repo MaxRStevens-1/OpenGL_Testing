@@ -30,6 +30,7 @@
 #include "filesystem.h"
 #include "Animator.hpp"
 #include "joints_loader_helper.hpp"
+#include "rotations_test.hpp"
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -70,6 +71,10 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 
 int main()
 {
+
+    // test_basic_rotations();
+    // return 0;
+
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -237,9 +242,7 @@ int main()
 
         // // update animation every 5 frames
         if (num_renders % ANIMATION_UPDATE_FRAMES == 0 && !should_stop) {
-            std::cout << current_model.toString() << std::endl << std::endl;
-            std::cout << "base model"<<std::endl << base_model.toString() << std::endl;
-            std::cout << "__________________________________" << std::endl;
+            std::cout << "at frame: " << current_frame << std::endl;
             current_model = base_model.rotate_self_by_rotations(name_rotation_list[current_frame], current_model);  
             flat_positions = flatten(current_model.vectorify_positions_in_order());
             glBindVertexArray(VAO);
