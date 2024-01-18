@@ -406,6 +406,12 @@ matrix rodrigues(position base_pos, position new_pos) {
         
     position cross = base_norm.cross(new_norm);
     
+    // // arbitary axis determination when mag is 0
+    if (cross.magnitude() == 0)  {
+        cross = position(0, 1, 0);
+        std::cout << "CROSS PRODUCT HAS MAGNITUTDE OF 0" << std::endl;
+    }
+
     float cosin = base_norm.dot(new_norm);
     float sin = cross.magnitude();
 
@@ -490,9 +496,9 @@ struct bodymodel {
             position base_parent = base.positions[base_joint.parent_index];
             position base_child = base.positions[base_joint.child_index];
             base_child = base_child.subtract(base_parent);            
-
-            matrix rotation = rodrigues(base_child, child);
-
+            std::cout << "child " << child.toString() << " base child " << base_child.toString() << std::endl;
+            matrix rotation = rodrigues(base_child , child);
+            std::cout << "constructed matrix is: \n" << rotation.to_string() << std::endl;
             // NOTE !! To rotate point A to point B, you will need to normalize point A, and then multiple
             // by the joints base distance. This is to prevent bone lengths changing due to model instability
             joint_name_to_rotation[j.name] = rotation;
@@ -506,8 +512,10 @@ struct bodymodel {
                 base_parent = base.positions[base_joint.parent_index];
                 base_child = base.positions[base_joint.child_index];
 
-                base_child = base_child.subtract(base_parent);       
+                base_child = base_child.subtract(base_parent); 
+                std::cout << "child " << child.toString() << " base child " << base_child.toString() << std::endl;
                 rotation = rodrigues(base_child, child);
+                std::cout << "constructed matrix is: \n" << rotation.to_string() << std::endl;
 
                 joint_name_to_rotation[next_j.name] = rotation;
             }
@@ -521,14 +529,12 @@ struct bodymodel {
         for (joint j : base_joints) {
             matrix current_matrix = rotations[j.name];
             local_positions = rotate_single_joint(j, local_positions, current_matrix);
-            // std::cout << "for joint " + j.name + "\n" << current_matrix.to_string() << std::endl;
             for (joint next_j : joints_flow[j]) {
                 if (next_j.name == "rl_should")
                     continue;
-                current_matrix = current_matrix.dot(rotations[next_j.name]);
+                // current_matrix = current_matrix.dot(rotations[next_j.name]);
+                current_matrix = rotations[next_j.name];
                 local_positions = rotate_single_joint(next_j, local_positions, current_matrix);
-
-                // std::cout << "for joint " + next_j.name + "\n" << current_matrix.to_string() << std::endl;
             }
         }
 
@@ -541,9 +547,6 @@ struct bodymodel {
         position parent = local_positions[j.parent_index];
         position child = local_positions[j.child_index];
 
-        // position local_pos = child.subtract(parent).normalize();
-        // position rotated_pos = current_rot.dot(local_pos).scale(child.magnitude()).add(parent);
-
         position local_pos = child.subtract(parent);
         position rotated_pos = current_rot.dot(local_pos).add(parent);
 
@@ -553,19 +556,8 @@ struct bodymodel {
         for (joint dj : joints_flow[j]) {                    
             local_positions[dj.child_index] = local_positions[dj.child_index].add(position_diff);
         }
-        // std::cout << "joint: " + j.name;
-        // for (auto pos : local_positions) {
-        //     std::cout << pos.toString();
-        // }
         // std::cout << std::endl;
         return local_positions;
-    }
-
-    // return the rotated position, 
-    position rotate_points(matrix rotation, position parent_pos, position child_pos) {
-        // get local position
-        position local_pos = child_pos.subtract(parent_pos).normalize();
-        return rotation.dot(local_pos).scale(child_pos.magnitude()).add(parent_pos);
     }
 
     std::string toString() {
