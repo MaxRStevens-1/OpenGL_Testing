@@ -172,7 +172,7 @@ std::unordered_map<std::string, matrix> matrices_from_line(std::string line) {
         real_matrices.push_back(local_matrix);
     }
 
-
+    // now construct final name - rotation matrix hashmap
     std::unordered_map<std::string, matrix> joint_matrix_map;
     for (unsigned int i = 0; i < names.size(); i++) {
         std::string name = names[i];
@@ -194,14 +194,24 @@ std::tuple<bodymodel, std::vector<std::unordered_map<std::string, matrix>>> load
     }
 
     std::getline(file, file_string);
-    std::vector<position> positions = split_blaze_keypoints(file_string, true);
-    bodymodel model = create_blaze_body_model();
+    std::vector<position> positions = split_blaze_keypoints(file_string, false);
+    bodymodel model = create_adjusted_blaze_model();
+
+    for (joint j : model.base_joints) {
+        std::cout << j.name << std::endl;
+        for (joint nj : model.joints_flow[j]) {
+            std::cout << nj.name << std::endl;
+        }
+        std::cout << "__________________" << std::endl;
+    }
+
     model.set_positions(positions);
     std::vector<std::unordered_map<std::string, matrix>> matrix_hash_list;
     while (std::getline(file, file_string)) {
         matrix_hash_list.push_back(matrices_from_line(file_string));
     }
 
+    std::cout << model.toString() << std::endl;
 
     file.close();
     

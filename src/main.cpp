@@ -111,7 +111,7 @@ int main()
 
     // now I have the vertices of blazepose model
     // std::vector<std::vector<float>> positions = load_joints_all_lines("bow.txt");
-    auto [base_model, name_rotation_list] = load_blaze_model_from_file("ymca_3_matrix.txt");
+    auto [base_model, name_rotation_list] = load_blaze_model_from_file("ymca_4_adjusted_matrix.txt");
     bodymodel current_model = base_model;
     std::vector<std::vector<float>> positions = base_model.vectorify_positions_in_order();
     // flatten vertices seperate by time to single list for easy retrieval

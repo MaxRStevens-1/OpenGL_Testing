@@ -532,7 +532,6 @@ struct bodymodel {
             for (joint next_j : joints_flow[j]) {
                 if (next_j.name == "rl_should")
                     continue;
-                // current_matrix = current_matrix.dot(rotations[next_j.name]);
                 current_matrix = rotations[next_j.name];
                 local_positions = rotate_single_joint(next_j, local_positions, current_matrix);
             }
@@ -811,6 +810,123 @@ bodymodel create_blaze_body_model () {
 
     return blaze_model;
 } 
+
+/**
+ * @brief Create a blazepose body model object
+ * BUT instead of using an 'sqaure' torso, 
+ * this uses an 'spine', constructed out of midpoints from 
+ * left/right shoulders and hip markers.
+ * 
+ * @param positions 
+ * @returnstd::vector<joint> 
+ */
+bodymodel create_adjusted_blaze_model() {
+
+
+    // no longer just assuming that I am throwing in all the blazepose markers,
+    // I'll parse this out to insure positions matches required indices,
+
+    int ADJUSTED_BASE_JOINT = 0;
+
+    const int HIP = 0;
+    const int SPINE = 1;
+    
+    const int RIGHT_SHOULDER = 2;
+    const int RIGHT_ELBOW = 3;
+    const int RIGHT_HAND = 4;
+
+    const int LEFT_SHOULDER = 5;
+    const int LEFT_ELBOW = 6;
+    const int LEFT_HAND = 7;
+
+    const int RIGHT_KNEE = 8;
+    const int RIGHT_FOOT = 9;
+
+    const int LEFT_KNEE = 10;
+    const int LEFT_FOOT = 11;
+
+
+    // base positions
+    joint hip_spine (HIP, SPINE, "hip_spine");
+
+    // right arm
+    joint r_spine_should (SPINE, RIGHT_SHOULDER, "r_spine_should");
+    joint r_should_elbow (RIGHT_SHOULDER, RIGHT_ELBOW, "r_should_elbow");
+    joint r_elbow_hand (RIGHT_ELBOW, RIGHT_HAND, "r_elbow_hand");
+
+    // left arm 
+    joint l_spine_should (SPINE, LEFT_SHOULDER, "l_spine_should");
+    joint l_should_elbow (LEFT_SHOULDER, LEFT_ELBOW, "l_should_elbow");
+    joint l_elbow_hand (LEFT_ELBOW, LEFT_HAND, "l_elbow_hand");
+
+    // right leg
+    joint r_hip_knee (HIP, RIGHT_KNEE, "r_hip_knee");
+    joint r_knee_foot (RIGHT_KNEE, RIGHT_FOOT, "r_knee_foot");
+
+    // left leg
+    joint l_hip_knee (HIP, LEFT_KNEE, "l_hip_knee");
+    joint l_knee_foot (LEFT_KNEE, LEFT_FOOT, "l_knee_foot");
+
+    std::vector<joint> adjusted_joints = {
+        hip_spine, 
+        r_spine_should, r_should_elbow, r_elbow_hand,
+        l_spine_should, l_should_elbow, l_elbow_hand,
+        r_hip_knee, r_knee_foot,
+        l_hip_knee, l_knee_foot
+    };
+
+    // now piece the model togther
+    return bodymodel(adjusted_joints, ADJUSTED_BASE_JOINT);
+} 
+
+/**
+ * Creates the adjusted model positions from an input blazepose model.
+ * This is done to create a spin torso based model vs. an box torso model.
+ * Most 3D models use the spin torso model, so this simply makes it easier to apply
+ * rotations calculated from human pose to model pose.
+ * 
+ * returns the new positions for the adjusted model, given an old adjusted model and new blaze model.
+*/
+bodymodel set_adjust_points_from_blaze (bodymodel adjusted_model, bodymodel blaze_model) {
+    // what I need to do, find midpoint between l_hip and r_hip, this is hip
+    // fine midpoint between l_should and right_should, this is spine
+    // recreate positions array using adjusted indexing
+    bodymodel local_adjusted_model = adjusted_model;
+
+    std::vector<position> blaze_positions = blaze_model.positions;
+
+    const int BLAZE_LEFT_HIP = 23;
+    const int BLAZE_RIGHT_HIP = 24;
+
+    const int BLAZE_LEFT_SHOULDER = 11;
+    const int BLAZE_RIGHT_SHOULDER = 12;
+
+    // calculating hip and shoulder midpoints
+    position blaze_hip_midpoint = blaze_positions[BLAZE_LEFT_HIP]
+        .add(blaze_positions[BLAZE_RIGHT_HIP]).scale(0.5);
+    position blaze_shoulder_midpoint = blaze_positions[BLAZE_LEFT_SHOULDER]
+        .add(blaze_positions[BLAZE_RIGHT_SHOULDER]).scale(0.5);
+
+    std::vector adjusted_positions = {
+        blaze_hip_midpoint,      // hip
+        blaze_shoulder_midpoint, // spine
+        blaze_positions[11],     // right shoulder
+        blaze_positions[13],     // right elbow
+        blaze_positions[15],     // right hand
+        blaze_positions[12],     // left shoulder
+        blaze_positions[14],     // left elbow
+        blaze_positions[16],     // left hand
+        blaze_positions[25],     // right knee
+        blaze_positions[27],     // right foot
+        blaze_positions[26],     // left knee
+        blaze_positions[28]      // left foot
+    };
+    local_adjusted_model.set_positions(adjusted_positions);
+
+    // now that I have the positions of the local model, I have to calculate rotations using this 
+    // I'll keep same file format, so i'll have to reconvert blaze model postitions to adjust model in graphics.
+    return local_adjusted_model;
+}
 
 
 void print_map(std::unordered_map<joint, position, JointHasher> m) {
