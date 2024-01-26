@@ -15,6 +15,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include "dancingVampireUtils.hpp"
 struct position {
     float x;
     float y;
@@ -635,7 +636,7 @@ struct bodymodel {
      *  and sets the joints_flow hashmap to all of its downstream joints in order of the 
      *  furthest upstream joint first
      * @param parent 
-     * @returnstd::vector<joint> 
+     * @return std::vector<joint> 
      */
    std::vector<joint> create_flow_helper (joint parent) {
         // find children of parent
@@ -927,6 +928,121 @@ bodymodel set_adjust_points_from_blaze (bodymodel adjusted_model, bodymodel blaz
     // I'll keep same file format, so i'll have to reconvert blaze model postitions to adjust model in graphics.
     return local_adjusted_model;
 }
+
+/**
+ * constructs a dancing vampire model. Manually done to insure correctness.
+*/
+bodymodel create_local_dancing_vampire_model() {
+
+    //torso
+    joint hip_spine(HIP, SPINE, "hip_spine");
+    joint spine_spine_1(SPINE, SPINE_1, "spine_spine_1");
+    joint spine_1_spine_2(SPINE_1, SPINE_2, "spine_1_spine_2");
+
+
+    // left arm
+    joint spine_2_left_shoulder(SPINE_2, LEFT_SHOULDER, "spine_2_left_shoulder");
+    joint left_shoulder_left_arm(LEFT_SHOULDER, LEFT_ARM, "left_shoulder_left_arm");
+    joint left_arm_left_forearm(LEFT_ARM, LEFT_FOREARM, "left_arm_left_forearm");
+    joint left_forearm_left_hand(LEFT_FOREARM, LEFT_HAND, "left_forearm_left_hand");
+
+    // left hand
+    joint left_hand_left_hand_thumb_1(LEFT_HAND, LEFT_HAND_THUMB_1, "left_hand_left_hand_thumb");
+    joint left_hand_pink_1_left_hand_thumb_2(LEFT_HAND_THUMB_1, LEFT_HAND_THUMB_2, "left_hand_thumb_1_left_hand_thumb_2");
+    joint left_hand_pink_2_left_hand_thumb_3(LEFT_HAND_THUMB_2, LEFT_HAND_THUMB_3, "left_hand_thumb_2_left_hand_thumb_3");
+    joint left_hand_pink_3_left_hand_thumb_4(LEFT_HAND_THUMB_3, LEFT_HAND_THUMB_4, "left_hand_thumb_3_left_hand_thumb_4");
+
+    joint left_hand_left_hand_index_1(LEFT_HAND, LEFT_HAND_INDEX_1, "left_hand_left_hand_index");
+    joint left_hand_pink_1_left_hand_index_2(LEFT_HAND_INDEX_1, LEFT_HAND_INDEX_2, "left_hand_index_1_left_hand_index_2");
+    joint left_hand_pink_2_left_hand_index_3(LEFT_HAND_INDEX_2, LEFT_HAND_INDEX_3, "left_hand_index_2_left_hand_index_3");
+    joint left_hand_pink_3_left_hand_index_4(LEFT_HAND_INDEX_3, LEFT_HAND_INDEX_4, "left_hand_index_3_left_hand_index_4");
+
+    joint left_hand_left_hand_middle_1(LEFT_HAND, LEFT_HAND_MIDDLE_1, "left_hand_left_hand_middle");
+    joint left_hand_pink_1_left_hand_middle_2(LEFT_HAND_MIDDLE_1, LEFT_HAND_MIDDLE_2, "left_hand_middle_1_left_hand_middle_2");
+    joint left_hand_pink_2_left_hand_middle_3(LEFT_HAND_MIDDLE_2, LEFT_HAND_MIDDLE_3, "left_hand_middle_2_left_hand_middle_3");
+    joint left_hand_pink_3_left_hand_middle_4(LEFT_HAND_MIDDLE_3, LEFT_HAND_MIDDLE_4, "left_hand_middle_3_left_hand_middle_4");
+
+    joint left_hand_left_hand_ring_1(LEFT_HAND, LEFT_HAND_RING_1, "left_hand_left_hand_ring");
+    joint left_hand_pink_1_left_hand_ring_2(LEFT_HAND_RING_1, LEFT_HAND_RING_2, "left_hand_ring_1_left_hand_ring_2");
+    joint left_hand_pink_2_left_hand_ring_3(LEFT_HAND_RING_2, LEFT_HAND_RING_3, "left_hand_ring_2_left_hand_ring_3");
+    joint left_hand_pink_3_left_hand_ring_4(LEFT_HAND_RING_3, LEFT_HAND_RING_4, "left_hand_ring_3_left_hand_ring_4");
+
+    joint left_hand_left_hand_pinky_1(LEFT_HAND, LEFT_HAND_PINKY_1, "left_hand_left_hand_pinky");
+    joint left_hand_pink_1_left_hand_pinky_2(LEFT_HAND_PINKY_1, LEFT_HAND_PINKY_2, "left_hand_pinky_1_left_hand_pinky_2");
+    joint left_hand_pink_2_left_hand_pinky_3(LEFT_HAND_PINKY_2, LEFT_HAND_PINKY_3, "left_hand_pinky_2_left_hand_pinky_3");
+    joint left_hand_pink_3_left_hand_pinky_4(LEFT_HAND_PINKY_3, LEFT_HAND_PINKY_4, "left_hand_pinky_3_left_hand_pinky_4");
+
+
+    // right arm
+    joint spine_2_right_shoulder(SPINE_2, RIGHT_SHOULDER, "spine_2_right_shoulder");
+    joint right_shoulder_right_arm(RIGHT_SHOULDER, RIGHT_ARM, "right_shoulder_right_arm");
+    joint right_arm_right_forearm(RIGHT_ARM, RIGHT_FOREARM, "right_arm_right_forearm");
+    joint right_forearm_right_hand(RIGHT_FOREARM, RIGHT_HAND, "right_forearm_right_hand");
+
+    // right hand
+    joint right_hand_right_hand_thumb_1(RIGHT_HAND, RIGHT_HAND_THUMB_1, "right_hand_right_hand_thumb");
+    joint right_hand_pink_1_right_hand_thumb_2(RIGHT_HAND_THUMB_1, RIGHT_HAND_THUMB_2, "right_hand_thumb_1_right_hand_thumb_2");
+    joint right_hand_pink_2_right_hand_thumb_3(RIGHT_HAND_THUMB_2, RIGHT_HAND_THUMB_3, "right_hand_thumb_2_right_hand_thumb_3");
+    joint right_hand_pink_3_right_hand_thumb_4(RIGHT_HAND_THUMB_3, RIGHT_HAND_THUMB_4, "right_hand_thumb_3_right_hand_thumb_4");
+
+    joint right_hand_right_hand_index_1(RIGHT_HAND, RIGHT_HAND_INDEX_1, "right_hand_right_hand_index");
+    joint right_hand_pink_1_right_hand_index_2(RIGHT_HAND_INDEX_1, RIGHT_HAND_INDEX_2, "right_hand_index_1_right_hand_index_2");
+    joint right_hand_pink_2_right_hand_index_3(RIGHT_HAND_INDEX_2, RIGHT_HAND_INDEX_3, "right_hand_index_2_right_hand_index_3");
+    joint right_hand_pink_3_right_hand_index_4(RIGHT_HAND_INDEX_3, RIGHT_HAND_INDEX_4, "right_hand_index_3_right_hand_index_4");
+
+    joint right_hand_right_hand_middle_1(RIGHT_HAND, RIGHT_HAND_MIDDLE_1, "right_hand_right_hand_middle");
+    joint right_hand_pink_1_right_hand_middle_2(RIGHT_HAND_MIDDLE_1, RIGHT_HAND_MIDDLE_2, "right_hand_middle_1_right_hand_middle_2");
+    joint right_hand_pink_2_right_hand_middle_3(RIGHT_HAND_MIDDLE_2, RIGHT_HAND_MIDDLE_3, "right_hand_middle_2_right_hand_middle_3");
+    joint right_hand_pink_3_right_hand_middle_4(RIGHT_HAND_MIDDLE_3, RIGHT_HAND_MIDDLE_4, "right_hand_middle_3_right_hand_middle_4");
+
+    joint right_hand_right_hand_ring_1(RIGHT_HAND, RIGHT_HAND_RING_1, "right_hand_right_hand_ring");
+    joint right_hand_pink_1_right_hand_ring_2(RIGHT_HAND_RING_1, RIGHT_HAND_RING_2, "right_hand_ring_1_right_hand_ring_2");
+    joint right_hand_pink_2_right_hand_ring_3(RIGHT_HAND_RING_2, RIGHT_HAND_RING_3, "right_hand_ring_2_right_hand_ring_3");
+    joint right_hand_pink_3_right_hand_ring_4(RIGHT_HAND_RING_3, RIGHT_HAND_RING_4, "right_hand_ring_3_right_hand_ring_4");
+
+    joint right_hand_right_hand_pinky_1(RIGHT_HAND, RIGHT_HAND_PINKY_1, "right_hand_right_hand_pinky");
+    joint right_hand_pink_1_right_hand_pinky_2(RIGHT_HAND_PINKY_1, RIGHT_HAND_PINKY_2, "right_hand_pinky_1_right_hand_pinky_2");
+    joint right_hand_pink_2_right_hand_pinky_3(RIGHT_HAND_PINKY_2, RIGHT_HAND_PINKY_3, "right_hand_pinky_2_right_hand_pinky_3");
+    joint right_hand_pink_3_right_hand_pinky_4(RIGHT_HAND_PINKY_3, RIGHT_HAND_PINKY_4, "right_hand_pinky_3_right_hand_pinky_4");
+
+    // left leg
+    joint hip_left_up_leg(HIP, LEFT_UP_LEG, "hip_left_up_leg");
+    joint left_up_leg_left_leg(LEFT_UP_LEG, LEFT_LEG, "left_up_leg_left_leg");
+    joint left_leg_left_toe_base(LEFT_LEG, LEFT_TOE_BASE, "left_leg_left_toe_base");
+    joint left_toe_base_left_toe_end(LEFT_TOE_BASE, LEFT_TOE_END, "left_toe_base_left_toe_end");
+
+    // right leg
+    joint hip_right_up_leg(HIP, RIGHT_UP_LEG, "hip_right_up_leg");
+    joint right_up_leg_right_leg(RIGHT_UP_LEG, RIGHT_LEG, "right_up_leg_right_leg");
+    joint right_leg_right_toe_base(RIGHT_LEG, RIGHT_TOE_BASE, "right_leg_right_toe_base");
+    joint right_toe_base_right_toe_end(LEFT_TOE_BASE, LEFT_TOE_END, "right_toe_base_right_toe_end");
+
+    std::vector<joint> joints = {
+        hip_spine, spine_spine_1, spine_1_spine_2, spine_2_left_shoulder, left_shoulder_left_arm, 
+        left_arm_left_forearm, left_forearm_left_hand, left_hand_left_hand_thumb_1, left_hand_pink_1_left_hand_thumb_2, 
+        left_hand_pink_2_left_hand_thumb_3, left_hand_pink_3_left_hand_thumb_4, left_hand_left_hand_index_1, 
+        left_hand_pink_1_left_hand_index_2, left_hand_pink_2_left_hand_index_3, left_hand_pink_3_left_hand_index_4, 
+        left_hand_left_hand_middle_1, left_hand_pink_1_left_hand_middle_2, left_hand_pink_2_left_hand_middle_3, 
+        left_hand_pink_3_left_hand_middle_4, left_hand_left_hand_ring_1, left_hand_pink_1_left_hand_ring_2, 
+        left_hand_pink_2_left_hand_ring_3, left_hand_pink_3_left_hand_ring_4, left_hand_left_hand_pinky_1, 
+        left_hand_pink_1_left_hand_pinky_2, left_hand_pink_2_left_hand_pinky_3, left_hand_pink_3_left_hand_pinky_4, 
+        spine_2_right_shoulder, right_shoulder_right_arm, right_arm_right_forearm, right_forearm_right_hand, 
+        right_hand_right_hand_thumb_1, right_hand_pink_1_right_hand_thumb_2, right_hand_pink_2_right_hand_thumb_3, 
+        right_hand_pink_3_right_hand_thumb_4, right_hand_right_hand_index_1, right_hand_pink_1_right_hand_index_2, 
+        right_hand_pink_2_right_hand_index_3, right_hand_pink_3_right_hand_index_4, right_hand_right_hand_middle_1, 
+        right_hand_pink_1_right_hand_middle_2, right_hand_pink_2_right_hand_middle_3, right_hand_pink_3_right_hand_middle_4, 
+        right_hand_right_hand_ring_1, right_hand_pink_1_right_hand_ring_2, right_hand_pink_2_right_hand_ring_3, 
+        right_hand_pink_3_right_hand_ring_4, right_hand_right_hand_pinky_1, right_hand_pink_1_right_hand_pinky_2, 
+        right_hand_pink_2_right_hand_pinky_3, right_hand_pink_3_right_hand_pinky_4, hip_left_up_leg, left_up_leg_left_leg, 
+        left_leg_left_toe_base, left_toe_base_left_toe_end, hip_right_up_leg, right_up_leg_right_leg, 
+        right_leg_right_toe_base, right_toe_base_right_toe_end
+    };
+
+
+    return bodymodel(joints, HIP);
+}
+
+
 
 
 void print_map(std::unordered_map<joint, position, JointHasher> m) {

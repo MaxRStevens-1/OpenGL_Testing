@@ -60,7 +60,6 @@ public:
         m_LocalTransform(1.0f)
     {
         m_NumPositions = channel->mNumPositionKeys;
-        std::cout << "bone name is " << name << std::endl; 
 
         for (int positionIndex = 0; positionIndex < m_NumPositions; ++positionIndex)
         {
@@ -93,8 +92,19 @@ public:
             data.timeStamp = timeStamp;
             m_Scales.push_back(data);
         }
+
+        Update(m_Positions[0].timeStamp);
+
+        glm::vec4 localVec(0, 0, 0, 1);
+        auto scaledVec = m_LocalTransform * localVec;
+        std::cout << name << ": (" << scaledVec.x << ", " << scaledVec.y << ", " << scaledVec.z << ")" << std::endl;
+
     }
 	
+    glm::vec4 get_first_position() {
+        return glm::vec4(m_Positions[0].position, 1);
+    }
+
     /*interpolates  b/w positions,rotations & scaling keys based on the curren time of 
     the animation and prepares the local transformation matrix by combining all keys 
     tranformations*/

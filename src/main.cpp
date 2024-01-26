@@ -31,6 +31,8 @@
 #include "Animator.hpp"
 #include "joints_loader_helper.hpp"
 #include "rotations_test.hpp"
+#include "dancingVampireUtils.hpp"
+#include "AssimpGLMHelpers.h"
 
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -44,6 +46,10 @@ AccelerationCamera camera;
 float opacity = 0.2f;
 
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
+auto joint_to_index = name_to_index();
+auto index_to_joint = hashtable_from_const();
+std::vector<position> vamp_pos(62);
 
 void processInput(GLFWwindow *window, Shader shader) {
 
@@ -67,6 +73,35 @@ void mouse_callback(GLFWwindow *window, double xpos, double ypos) {
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     camera.processScrollForCamera(xoffset, yoffset);
+}
+
+
+void GetJointWorldPositions(const aiNode* node, const aiMatrix4x4& parentTransform = aiMatrix4x4()) {
+    aiMatrix4x4 transform = parentTransform;
+
+
+    std::string name = node->mName.C_Str();
+    std::transform(name.begin(), name.end(), name.begin(),
+        [](unsigned char c){ return std::toupper(c); });
+
+    std::cout << "Joint Name: " << name << std::endl;
+
+    if (joint_to_index.find(name) != joint_to_index.end()) {
+        transform = node->mTransformation * parentTransform;
+        // Check if this node corresponds to a joint
+        aiVector3D jointPosition = transform * aiVector3D(0.0f, 0.0f, 0.0f);
+        // jointPosition = jointPosition + p_vec;
+        glm::vec3 loc_vec = AssimpGLMHelpers::GetGLMVec(jointPosition);
+        position local_p(loc_vec.x, loc_vec.y, loc_vec.z);
+        local_p = local_p.scale(.01);
+        std::cout << ", Joint World Position: (" << local_p.x << ", " << local_p.y << ", " << local_p.z << ")" << std::endl;
+
+        vamp_pos[joint_to_index[name]] = local_p;
+    } 
+
+    for (unsigned int i = 0; i < node->mNumChildren; ++i) {
+        GetJointWorldPositions(node->mChildren[i], transform);
+    }
 }
 
 int main()
@@ -116,10 +151,50 @@ int main()
     std::vector<std::vector<float>> positions = base_model.vectorify_positions_in_order();
     // flatten vertices seperate by time to single list for easy retrieval
     std::vector<float> flat_positions = flatten(positions);
+
+    // change to using 4x4 matrices, and translation matrices
+
+    // now what I create a local model representation of the 3d model
+    // also create a way to grab out positions of 3d model for a base model
+    // then create an model -> adjusted blaze model conversion
+    //  perhaps add an another var to joint, marking whether or not to perform local rotation calc?
+    //  also have a hashmap from adjusted model bone to 3d model bone 
+
+
     // path from models folder to desired obj files...
     std::string path = std::string("./src/models/dancing_vampire/dancing_vampire.dae");
 
     Model local_model(path);
+
+    std::cout << "CREATED SHADER" << std::endl;    
+
+    // create camera
+    camera = AccelerationCamera(SCR_WIDTH, SCR_HEIGHT);
+
+    // setting up animation
+
+    Animation danceAnimation(FileSystem::getPath(path),
+        &local_model);
+    Animator animator(&danceAnimation);
+    animator.UpdateAnimation(5.0f);
+
+    bodymodel dancing_vampire = create_local_dancing_vampire_model();
+    auto index_name_map = hashtable_from_const();
+    auto info_map = danceAnimation.GetBoneIDMap();
+
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile(FileSystem::getPath(path), aiProcess_Triangulate | aiProcess_FlipUVs);
+
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        std::cerr << "Error loading model: " << importer.GetErrorString() << std::endl;
+        return -1;
+    }
+
+    GetJointWorldPositions(scene->mRootNode);
+    dancing_vampire.set_positions(vamp_pos);
+    dancing_vampire.positions[0] = position(0, 0, 0);
+    std::cout << dancing_vampire.toString() << std::endl;
+    flat_positions = flatten(dancing_vampire.vectorify_positions_in_order());
 
     // current_model = base_model.rotate_self_by_rotations(name_rotation_list[0], current_model);
 
@@ -144,18 +219,7 @@ int main()
     }
     
 
-    std::cout << "CREATED SHADER" << std::endl;
 
-    
-
-    // create camera
-    camera = AccelerationCamera(SCR_WIDTH, SCR_HEIGHT);
-
-    // setting up animation
-
-    Animation danceAnimation(FileSystem::getPath(path),
-        &local_model);
-    Animator animator(&danceAnimation);
 
     // // setting light structs
     // // setting Spot Light
@@ -241,7 +305,8 @@ int main()
         }
 
         // // update animation every 5 frames
-        if (num_renders % ANIMATION_UPDATE_FRAMES == 0 && !should_stop) {
+        if (false) {
+        // if (num_renders % ANIMATION_UPDATE_FRAMES == 0 && !should_stop) {
             std::cout << "at frame: " << current_frame << std::endl;
             current_model = base_model.rotate_self_by_rotations(name_rotation_list[current_frame], current_model);  
             flat_positions = flatten(current_model.vectorify_positions_in_order());

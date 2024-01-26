@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <algorithm>
 
 #include "AssimpGLMHelpers.h"
 #include "Bone.hpp"
@@ -48,12 +49,20 @@ public:
     {
     }
 
-    Bone* FindBone(const std::string& name)
-    {
+    Bone* FindBone(const std::string& name) {
+        // convert name to lower
+        std::string loc_name = name;
+        std::transform(loc_name.begin(), loc_name.end(), loc_name.begin(),
+            [](unsigned char c){ return std::tolower(c); });
         auto iter = std::find_if(m_Bones.begin(), m_Bones.end(),
             [&](const Bone& Bone)
             {
-                return Bone.GetBoneName() == name;
+                // converts bone name to lower
+                std::string bone_name = Bone.GetBoneName();
+                std::transform(bone_name.begin(), bone_name.end(), bone_name.begin(),
+                [](unsigned char c){ return std::tolower(c); });
+
+                return bone_name == loc_name;
             }
         );
         if (iter == m_Bones.end()) return nullptr;

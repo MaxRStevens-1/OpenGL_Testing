@@ -57,8 +57,7 @@ public:
 	
         Bone* Bone = m_CurrentAnimation->FindBone(nodeName);
 	
-        if (Bone)
-        {
+        if (Bone) {
             Bone->Update(m_CurrentTime);
             nodeTransform = Bone->GetLocalTransform();
         }
@@ -66,15 +65,15 @@ public:
         glm::mat4 globalTransformation = parentTransform * nodeTransform;
 	
         auto boneInfoMap = m_CurrentAnimation->GetBoneIDMap();
-        if (boneInfoMap.find(nodeName) != boneInfoMap.end())
-        {
+        if (boneInfoMap.find(nodeName) != boneInfoMap.end()) {
             int index = boneInfoMap[nodeName].id;
             glm::mat4 offset = boneInfoMap[nodeName].offset;
             m_FinalBoneMatrices[index] = globalTransformation * offset;
         }
-	
-        for (int i = 0; i < node->childrenCount; i++)
-            CalculateBoneTransform(&node->children[i], globalTransformation);
+
+        for (int i = 0; i < node->childrenCount; i++) {
+            CalculateBoneTransform(&node->children[i], globalTransformation);            
+        }
     }
 	
     std::vector<glm::mat4> GetFinalBoneMatrices() 
