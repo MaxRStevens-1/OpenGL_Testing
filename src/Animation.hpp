@@ -32,6 +32,8 @@ struct AssimpNodeData
 
 class Animation {
 public:
+    AssimpNodeData m_RootNode;
+
     Animation() = default;
 
     Animation(const std::string& animationPath, Model* model) {
@@ -125,7 +127,6 @@ private:
     float m_Duration;
     int m_TicksPerSecond;
     std::vector<Bone> m_Bones;
-    AssimpNodeData m_RootNode;
     std::map<std::string, BoneInfo> m_BoneInfoMap;
 };
 

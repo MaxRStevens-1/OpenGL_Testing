@@ -3,7 +3,7 @@
 #include <iostream>
 #include <unordered_map>
 
-const unsigned int HIP = 0;
+const unsigned int HIPS = 0;
 const unsigned int SPINE = 1;
 const unsigned int LEFT_UP_LEG = 2;
 const unsigned int RIGHT_UP_LEG = 3;
@@ -85,7 +85,7 @@ const unsigned int RIGHT_TOE_END = 61;
 
 std::unordered_map<unsigned int, std::string> hashtable_from_const() {
     std::unordered_map<unsigned int, std::string> hashtable;
-    hashtable[HIP] = "HIP";
+    hashtable[HIPS] = "HIPS";
     hashtable[SPINE] = "SPINE";
     hashtable[LEFT_UP_LEG] = "LEFTUPLEG";
     hashtable[RIGHT_UP_LEG] = "RIGHTUPLEG";

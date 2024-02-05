@@ -85,10 +85,8 @@ void GetJointWorldPositions(const aiNode* node, const aiMatrix4x4& parentTransfo
         [](unsigned char c){ return std::toupper(c); });
 
     std::cout << "Joint Name: " << name << std::endl;
-
     if (joint_to_index.find(name) != joint_to_index.end()) {
         transform = node->mTransformation * parentTransform;
-        // Check if this node corresponds to a joint
         aiVector3D jointPosition = transform * aiVector3D(0.0f, 0.0f, 0.0f);
         // jointPosition = jointPosition + p_vec;
         glm::vec3 loc_vec = AssimpGLMHelpers::GetGLMVec(jointPosition);
@@ -101,6 +99,42 @@ void GetJointWorldPositions(const aiNode* node, const aiMatrix4x4& parentTransfo
 
     for (unsigned int i = 0; i < node->mNumChildren; ++i) {
         GetJointWorldPositions(node->mChildren[i], transform);
+    }
+}
+
+void getBaseWorldPosFromChildren(AssimpNodeData currentNode, glm::mat4 transform, float scale) {
+    const auto localTransform = transform * currentNode.transformation;
+    const auto localPosition = localTransform * glm::vec4(0,0,0,1) * scale;
+
+    std::string name = currentNode.name;
+    std::transform(name.begin(), name.end(), name.begin(),
+        [](unsigned char c){ return std::toupper(c); });
+        
+    if (joint_to_index.find(name) != joint_to_index.end()) {
+        vamp_pos[joint_to_index[name]] = position(localPosition.x, localPosition.y, localPosition.z);
+        std::cout << name << ": " << position(localPosition.x, localPosition.y, localPosition.z).toString() << std::endl;
+
+        for (auto child : currentNode.children) {
+            getBaseWorldPosFromChildren(child, localTransform, scale);
+        }
+    }
+}
+
+
+void getWorldPositionFromBones(AssimpNodeData baseNode, float scale) {
+    const auto localTransform = baseNode.transformation;
+    const auto localPosition = localTransform * glm::vec4(0,0,0,1) * scale;
+
+    std::string name = baseNode.name;
+    std::transform(name.begin(), name.end(), name.begin(),
+        [](unsigned char c){ return std::toupper(c); });
+
+    vamp_pos[joint_to_index[name]] = position(localPosition.x, localPosition.y, localPosition.z);
+
+    std::cout << name << ": " << position(localPosition.x, localPosition.y, localPosition.z).toString() << std::endl;
+
+    for (auto child : baseNode.children) {
+        getBaseWorldPosFromChildren(child, localTransform, scale);
     }
 }
 
@@ -179,6 +213,18 @@ int main()
     animator.UpdateAnimation(5.0f);
 
     bodymodel dancing_vampire = create_local_dancing_vampire_model();
+    // auto baseBone = danceAnimation.FindBone("HIPS");
+    std::cout << "_____" << std::endl;
+    auto baseNode = danceAnimation.m_RootNode.children[0];
+    getWorldPositionFromBones(baseNode, 0.01f);
+    // auto vec = baseNode.transformation * glm::vec4(0,0,0,1) * 0.01f;
+    // std::cout << baseNode.name << ": " << vec.x << ", " << vec.y << ", " << vec.z << std::endl;
+
+    // for (auto node : danceAnimation.m_RootNode.children[0].children) {
+    //     vec = baseNode.transformation * node.transformation * glm::vec4(0,0,0,1) * 0.01f;
+    //     std::cout << node.name << ": " << vec.x << ", " << vec.y << ", " << vec.z << std::endl;
+    // }
+    // std::cout << baseBone->GetBoneName() << std::endl;
     auto index_name_map = hashtable_from_const();
     auto info_map = danceAnimation.GetBoneIDMap();
 
@@ -190,9 +236,8 @@ int main()
         return -1;
     }
 
-    GetJointWorldPositions(scene->mRootNode);
+    // GetJointWorldPositions(scene->mRootNode);
     dancing_vampire.set_positions(vamp_pos);
-    dancing_vampire.positions[0] = position(0, 0, 0);
     std::cout << dancing_vampire.toString() << std::endl;
     flat_positions = flatten(dancing_vampire.vectorify_positions_in_order());
 
@@ -217,9 +262,6 @@ int main()
         fprintf(stderr, "OpenGL error in \"%s\": %d (%d)\n", "binding buffers", e, e);
         exit(20);
     }
-    
-
-
 
     // // setting light structs
     // // setting Spot Light

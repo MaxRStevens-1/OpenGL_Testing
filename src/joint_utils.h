@@ -935,7 +935,7 @@ bodymodel set_adjust_points_from_blaze (bodymodel adjusted_model, bodymodel blaz
 bodymodel create_local_dancing_vampire_model() {
 
     //torso
-    joint hip_spine(HIP, SPINE, "hip_spine");
+    joint hips_spine(HIPS, SPINE, "hips_spine");
     joint spine_spine_1(SPINE, SPINE_1, "spine_spine_1");
     joint spine_1_spine_2(SPINE_1, SPINE_2, "spine_1_spine_2");
 
@@ -1006,19 +1006,19 @@ bodymodel create_local_dancing_vampire_model() {
     joint right_hand_pink_3_right_hand_pinky_4(RIGHT_HAND_PINKY_3, RIGHT_HAND_PINKY_4, "right_hand_pinky_3_right_hand_pinky_4");
 
     // left leg
-    joint hip_left_up_leg(HIP, LEFT_UP_LEG, "hip_left_up_leg");
+    joint hips_left_up_leg(HIPS, LEFT_UP_LEG, "hips_left_up_leg");
     joint left_up_leg_left_leg(LEFT_UP_LEG, LEFT_LEG, "left_up_leg_left_leg");
     joint left_leg_left_toe_base(LEFT_LEG, LEFT_TOE_BASE, "left_leg_left_toe_base");
     joint left_toe_base_left_toe_end(LEFT_TOE_BASE, LEFT_TOE_END, "left_toe_base_left_toe_end");
 
     // right leg
-    joint hip_right_up_leg(HIP, RIGHT_UP_LEG, "hip_right_up_leg");
+    joint hips_right_up_leg(HIPS, RIGHT_UP_LEG, "hips_right_up_leg");
     joint right_up_leg_right_leg(RIGHT_UP_LEG, RIGHT_LEG, "right_up_leg_right_leg");
     joint right_leg_right_toe_base(RIGHT_LEG, RIGHT_TOE_BASE, "right_leg_right_toe_base");
-    joint right_toe_base_right_toe_end(LEFT_TOE_BASE, LEFT_TOE_END, "right_toe_base_right_toe_end");
+    joint right_toe_base_right_toe_end(RIGHT_TOE_BASE, RIGHT_TOE_END, "right_toe_base_right_toe_end");
 
     std::vector<joint> joints = {
-        hip_spine, spine_spine_1, spine_1_spine_2, spine_2_left_shoulder, left_shoulder_left_arm, 
+        hips_spine, spine_spine_1, spine_1_spine_2, spine_2_left_shoulder, left_shoulder_left_arm, 
         left_arm_left_forearm, left_forearm_left_hand, left_hand_left_hand_thumb_1, left_hand_pink_1_left_hand_thumb_2, 
         left_hand_pink_2_left_hand_thumb_3, left_hand_pink_3_left_hand_thumb_4, left_hand_left_hand_index_1, 
         left_hand_pink_1_left_hand_index_2, left_hand_pink_2_left_hand_index_3, left_hand_pink_3_left_hand_index_4, 
@@ -1033,13 +1033,12 @@ bodymodel create_local_dancing_vampire_model() {
         right_hand_pink_1_right_hand_middle_2, right_hand_pink_2_right_hand_middle_3, right_hand_pink_3_right_hand_middle_4, 
         right_hand_right_hand_ring_1, right_hand_pink_1_right_hand_ring_2, right_hand_pink_2_right_hand_ring_3, 
         right_hand_pink_3_right_hand_ring_4, right_hand_right_hand_pinky_1, right_hand_pink_1_right_hand_pinky_2, 
-        right_hand_pink_2_right_hand_pinky_3, right_hand_pink_3_right_hand_pinky_4, hip_left_up_leg, left_up_leg_left_leg, 
-        left_leg_left_toe_base, left_toe_base_left_toe_end, hip_right_up_leg, right_up_leg_right_leg, 
+        right_hand_pink_2_right_hand_pinky_3, right_hand_pink_3_right_hand_pinky_4, hips_left_up_leg, left_up_leg_left_leg, 
+        left_leg_left_toe_base, left_toe_base_left_toe_end, hips_right_up_leg, right_up_leg_right_leg, 
         right_leg_right_toe_base, right_toe_base_right_toe_end
     };
 
-
-    return bodymodel(joints, HIP);
+    return bodymodel(joints, HIPS);
 }
 
 
