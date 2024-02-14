@@ -719,6 +719,16 @@ struct bodymodel {
         }
         return relative_pos;
     }
+
+    std::vector<joint> get_parent_joints_of_pos_index(int index) {
+        std::vector<joint> local_joints;
+        for (joint j : joints) {
+            if (j.parent_index == index) {
+                local_joints.push_back(j);
+            }
+        }
+        return local_joints;
+    }
 };
 
 /**
@@ -822,11 +832,6 @@ bodymodel create_blaze_body_model () {
  * @returnstd::vector<joint> 
  */
 bodymodel create_adjusted_blaze_model() {
-
-
-    // no longer just assuming that I am throwing in all the blazepose markers,
-    // I'll parse this out to insure positions matches required indices,
-
     int ADJUSTED_BASE_JOINT = 0;
 
     const int HIP = 0;

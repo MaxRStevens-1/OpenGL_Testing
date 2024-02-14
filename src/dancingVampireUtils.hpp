@@ -1,7 +1,9 @@
 #ifndef DANCING_VAMPIRE_UTILS_HPP
 #define DANCING_VAMPIRE_UTILS_HPP
+
 #include <iostream>
 #include <unordered_map>
+#include<tuple> // for tuple
 
 const unsigned int HIPS = 0;
 const unsigned int SPINE = 1;
@@ -72,11 +74,13 @@ const unsigned int RIGHT_HAND_PINKY_2 = 51;
 const unsigned int RIGHT_HAND_PINKY_3 = 52;
 const unsigned int RIGHT_HAND_PINKY_4 = 53;
 
+// left leg
 const unsigned int LEFT_LEG = 54;
 const unsigned int LEFT_FOOT = 55;
 const unsigned int LEFT_TOE_BASE = 56;
 const unsigned int LEFT_TOE_END = 57;
 
+// right left
 const unsigned int RIGHT_LEG = 58;
 const unsigned int RIGHT_FOOT = 59;
 const unsigned int RIGHT_TOE_BASE = 60;
@@ -159,6 +163,37 @@ std::unordered_map<std::string, unsigned int> name_to_index() {
     }
 
     return reverse;
-
 }
+
+// now I have a map of blaze bones, to vamp model joint tuples
+std::unordered_map<std::string, std::tuple<int, int>> blaze_to_vampire_map() {
+    std::unordered_map<std::string, std::tuple<int, int>> hash;
+    hash["hip_spine"] = std::make_tuple(HIPS, SPINE_2);
+
+    hash["r_spine_should"] = std::make_tuple(SPINE_2, RIGHT_ARM);
+    hash["r_should_elbow"] = std::make_tuple(RIGHT_ARM, RIGHT_FOREARM);
+    hash["r_elbow_hand"] = std::make_tuple(RIGHT_FOREARM, RIGHT_HAND);
+
+    hash["l_spine_should"] = std::make_tuple(SPINE_2, LEFT_ARM);
+    hash["l_should_elbow"] = std::make_tuple(LEFT_ARM, LEFT_FOREARM);
+    hash["l_elbow_hand"] = std::make_tuple(LEFT_FOREARM, LEFT_HAND);
+
+    hash["r_hip_knee"] = std::make_tuple(HIPS, RIGHT_UP_LEG);
+    hash["r_knee_foot"] = std::make_tuple(RIGHT_UP_LEG, RIGHT_LEG);
+
+    hash["l_hip_knee"] = std::make_tuple(HIPS, RIGHT_UP_LEG);;
+    hash["l_knee_foot"] = std::make_tuple(RIGHT_UP_LEG, RIGHT_LEG);
+
+    return hash;
+}
+
+void extract_blaze_rotations_to_vamp_model(bodymodel blaze, bodymodel vamp) {
+    std::unordered_map<std::string, std::tuple<int, int>> blaze_to_vamp = blaze_to_vampire_map();
+
+    // now that I have the blaze bone to vampire joint map, I should get the rotation of 
+    // each arbitrary bone b in blaze, find first bone inbetween (blaze_to_vamp[b].first, blaze_to_vamp[b].second)
+    // apply rotation to bone, then apply no more rotations until next blaze bone is reached  
+}
+
+
 #endif

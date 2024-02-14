@@ -76,32 +76,6 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 }
 
 
-void GetJointWorldPositions(const aiNode* node, const aiMatrix4x4& parentTransform = aiMatrix4x4()) {
-    aiMatrix4x4 transform = parentTransform;
-
-
-    std::string name = node->mName.C_Str();
-    std::transform(name.begin(), name.end(), name.begin(),
-        [](unsigned char c){ return std::toupper(c); });
-
-    std::cout << "Joint Name: " << name << std::endl;
-    if (joint_to_index.find(name) != joint_to_index.end()) {
-        transform = node->mTransformation * parentTransform;
-        aiVector3D jointPosition = transform * aiVector3D(0.0f, 0.0f, 0.0f);
-        // jointPosition = jointPosition + p_vec;
-        glm::vec3 loc_vec = AssimpGLMHelpers::GetGLMVec(jointPosition);
-        position local_p(loc_vec.x, loc_vec.y, loc_vec.z);
-        local_p = local_p.scale(.01);
-        std::cout << ", Joint World Position: (" << local_p.x << ", " << local_p.y << ", " << local_p.z << ")" << std::endl;
-
-        vamp_pos[joint_to_index[name]] = local_p;
-    } 
-
-    for (unsigned int i = 0; i < node->mNumChildren; ++i) {
-        GetJointWorldPositions(node->mChildren[i], transform);
-    }
-}
-
 void getBaseWorldPosFromChildren(AssimpNodeData currentNode, glm::mat4 transform, float scale) {
     const auto localTransform = transform * currentNode.transformation;
     const auto localPosition = localTransform * glm::vec4(0,0,0,1) * scale;
@@ -217,14 +191,8 @@ int main()
     std::cout << "_____" << std::endl;
     auto baseNode = danceAnimation.m_RootNode.children[0];
     getWorldPositionFromBones(baseNode, 0.01f);
-    // auto vec = baseNode.transformation * glm::vec4(0,0,0,1) * 0.01f;
-    // std::cout << baseNode.name << ": " << vec.x << ", " << vec.y << ", " << vec.z << std::endl;
 
-    // for (auto node : danceAnimation.m_RootNode.children[0].children) {
-    //     vec = baseNode.transformation * node.transformation * glm::vec4(0,0,0,1) * 0.01f;
-    //     std::cout << node.name << ": " << vec.x << ", " << vec.y << ", " << vec.z << std::endl;
-    // }
-    // std::cout << baseBone->GetBoneName() << std::endl;
+    
     auto index_name_map = hashtable_from_const();
     auto info_map = danceAnimation.GetBoneIDMap();
 
@@ -236,7 +204,6 @@ int main()
         return -1;
     }
 
-    // GetJointWorldPositions(scene->mRootNode);
     dancing_vampire.set_positions(vamp_pos);
     std::cout << dancing_vampire.toString() << std::endl;
     flat_positions = flatten(dancing_vampire.vectorify_positions_in_order());
