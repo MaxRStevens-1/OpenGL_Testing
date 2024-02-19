@@ -738,6 +738,7 @@ struct bodymodel {
                 return j;
             }
         }
+        throw std::invalid_argument("Failed to find input index as a parent...");
     }
 };
 
@@ -1153,7 +1154,7 @@ bodymodel apply_rotations_to_vamp_model(std::unordered_map<std::string, matrix> 
             joint b_vamp_bone = vamp.get_first_parent_joint_instance(std::get<0>(vamp_joints));
 
             // apply rotation for first vamp joint
-            local_positions = vamp.rotate_single_joint(local_joint, local_positions, current_rot);
+            local_positions = vamp.rotate_single_joint(b_vamp_bone, local_positions, current_rot);
         }
     }
 
@@ -1162,6 +1163,58 @@ bodymodel apply_rotations_to_vamp_model(std::unordered_map<std::string, matrix> 
 
     new_vamp.set_positions(local_positions);
     return new_vamp;
+}
+
+std::unordered_map<std::string, matrix> get_vampire_blaze_rotations(bodymodel blaze, bodymodel vampire) {
+    auto blaze_vamp_mapping = blaze_to_vampire_map();
+    std::unordered_map<std::string, matrix> joint_name_to_rotation;
+
+    // iterate thru blaze model to get rotation and vamp joint
+    for (auto base_joint : blaze.base_joints) {
+        // get local blaze positions
+
+        position curr_parent = blaze.positions[base_joint.parent_index];
+        position curr_child = blaze.positions[base_joint.child_index];
+        // now adjust with parent as origin
+        position rel_curr_child = curr_child.subtract(curr_parent);
+
+        // lets get vampire pos indicies
+        int vamp_parent_ind = std::get<0>(blaze_vamp_mapping[base_joint.name]);
+        int vamp_child_ind = std::get<0>(blaze_vamp_mapping[base_joint.name]);
+
+
+        position vamp_parent = vampire.positions[vamp_parent_ind];
+        position vamp_child = vampire.positions[vamp_child_ind]; 
+        // now adjust with parent as origin
+        position rel_vamp_child = vamp_child.subtract(vamp_parent);
+
+        matrix rotation = rodrigues(rel_vamp_child, rel_curr_child);
+
+        joint_name_to_rotation[base_joint.name] = rotation;
+
+        for (auto local_joint : blaze.joints_flow[base_joint]) {
+            position curr_parent = blaze.positions[local_joint.parent_index];
+            position curr_child = blaze.positions[local_joint.child_index];
+            // now adjust with parent as origin
+            position rel_curr_child = curr_child.subtract(curr_parent);
+
+            // lets get vampire pos indicies
+            int vamp_parent_ind = std::get<0>(blaze_vamp_mapping[local_joint.name]);
+            int vamp_child_ind = std::get<0>(blaze_vamp_mapping[local_joint.name]);
+
+
+            position vamp_parent = vampire.positions[vamp_parent_ind];
+            position vamp_child = vampire.positions[vamp_child_ind]; 
+            // now adjust with parent as origin
+            position rel_vamp_child = vamp_child.subtract(vamp_parent);
+
+            matrix rotation = rodrigues(rel_vamp_child, rel_curr_child);
+
+            joint_name_to_rotation[local_joint.name] = rotation;
+        }
+    }
+
+    return joint_name_to_rotation;
 }
 
 

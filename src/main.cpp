@@ -94,11 +94,11 @@ void getBaseWorldPosFromChildren(AssimpNodeData currentNode, glm::mat4 transform
     }
 }
 
-
 void getWorldPositionFromBones(AssimpNodeData baseNode, float scale) {
     const auto localTransform = baseNode.transformation;
     const auto localPosition = localTransform * glm::vec4(0,0,0,1) * scale;
 
+    // getting name as all caps
     std::string name = baseNode.name;
     std::transform(name.begin(), name.end(), name.begin(),
         [](unsigned char c){ return std::toupper(c); });
@@ -111,6 +111,24 @@ void getWorldPositionFromBones(AssimpNodeData baseNode, float scale) {
         getBaseWorldPosFromChildren(child, localTransform, scale);
     }
 }
+
+void dump_vampire_into_file(bodymodel vamp) {
+
+    std::ofstream vamp_dump_file ("vamp_dump.txt");
+    std::string vamp_line = "[";
+    for (int i = 0; i < vamp.positions.size(); i++) {
+    // for (position pos : adjusted_base_model.positions) {
+        position pos = vamp.positions[i];
+        vamp_line += pos.toString();
+        if (i != vamp.positions.size() - 1)
+            vamp_line += ", ";
+    }
+    vamp_line += "]";
+    vamp_dump_file << vamp_line << std::endl;
+    vamp_dump_file.close();
+    std::cout << "POSITIONS DUMP: " << std::endl;
+    std::cout << vamp_line << std::endl;
+} 
 
 int main()
 {
@@ -207,6 +225,8 @@ int main()
     dancing_vampire.set_positions(vamp_pos);
     std::cout << dancing_vampire.toString() << std::endl;
     flat_positions = flatten(dancing_vampire.vectorify_positions_in_order());
+
+    dump_vampire_into_file(dancing_vampire);
 
     // current_model = base_model.rotate_self_by_rotations(name_rotation_list[0], current_model);
 

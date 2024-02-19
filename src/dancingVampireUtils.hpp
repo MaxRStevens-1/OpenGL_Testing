@@ -187,4 +187,6 @@ std::unordered_map<std::string, std::tuple<int, int>> blaze_to_vampire_map() {
     return hash;
 }
 
+
+
 #endif
