@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <unordered_map>
-#include<tuple> // for tuple
+#include <tuple> // for tuple
 
 const unsigned int HIPS = 0;
 const unsigned int SPINE = 1;
@@ -186,14 +186,5 @@ std::unordered_map<std::string, std::tuple<int, int>> blaze_to_vampire_map() {
 
     return hash;
 }
-
-void extract_blaze_rotations_to_vamp_model(bodymodel blaze, bodymodel vamp) {
-    std::unordered_map<std::string, std::tuple<int, int>> blaze_to_vamp = blaze_to_vampire_map();
-
-    // now that I have the blaze bone to vampire joint map, I should get the rotation of 
-    // each arbitrary bone b in blaze, find first bone inbetween (blaze_to_vamp[b].first, blaze_to_vamp[b].second)
-    // apply rotation to bone, then apply no more rotations until next blaze bone is reached  
-}
-
 
 #endif

@@ -16,6 +16,8 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "dancingVampireUtils.hpp"
+
+
 struct position {
     float x;
     float y;
@@ -729,6 +731,14 @@ struct bodymodel {
         }
         return local_joints;
     }
+
+    joint get_first_parent_joint_instance(int index) {
+        for (joint j : joints) {
+            if (j.parent_index == index) {
+                return j;
+            }
+        }
+    }
 };
 
 /**
@@ -1110,7 +1120,49 @@ std::vector<position> split_blaze_keypoints (std::string kp, bool reverse_y=fals
     return positions;
 }
 
+// blaze model does not need positions, it is just used to grab joint names
+bodymodel apply_rotations_to_vamp_model(std::unordered_map<std::string, matrix> blaze_rotations, bodymodel vamp, bodymodel blaze) {
+    auto blaze_vamp_mapping = blaze_to_vampire_map();
+    std::vector<position> local_positions = vamp.positions;
+    auto new_vamp = vamp;
 
+    // now that I have the blaze bone to vampire joint map, I should get the rotation of 
+    // each arbitrary bone b in blaze, find first bone inbetween (blaze_to_vamp[b].first, blaze_to_vamp[b].second)
+    // apply rotation to bone, then apply no more rotations until next blaze bone is reached  
+
+    // iterate thru blaze model to get rotation and vamp joint
+    for (auto base_joint : blaze.base_joints) {
+        // get local rotations
+        auto current_rot = blaze_rotations[base_joint.name];
+        
+        // get vamp pos index tuple
+        // TODO !! make sure that this joint is correct! by going thru its joint flow looking for the given point index 2nd post
+        auto vamp_joints = blaze_vamp_mapping[base_joint.name];
+        joint b_vamp_bone = vamp.get_first_parent_joint_instance(std::get<0>(vamp_joints));
+
+        // apply rotation for first vamp joint
+        local_positions = vamp.rotate_single_joint(base_joint, local_positions, current_rot);
+
+        for (auto local_joint : blaze.joints_flow[base_joint]) {
+            // get local rotations
+            auto current_rot = blaze_rotations[local_joint.name];
+            
+            // get vamp pos index tuple
+            // TODO !! make sure that this joint is correct! by going thru its joint flow looking for the given point index 2nd post
+            auto vamp_joints = blaze_vamp_mapping[local_joint.name];
+            joint b_vamp_bone = vamp.get_first_parent_joint_instance(std::get<0>(vamp_joints));
+
+            // apply rotation for first vamp joint
+            local_positions = vamp.rotate_single_joint(local_joint, local_positions, current_rot);
+        }
+    }
+
+    // what I have to do now to animate the skeleton is send vamp skeleton base model and do similar mapping of vamp skeleton joint pairs to blaze bones
+    // to calculate out the rotations transforming vamp joints to blaze
+
+    new_vamp.set_positions(local_positions);
+    return new_vamp;
+}
 
 
 #endif
