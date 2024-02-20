@@ -39,6 +39,8 @@ const unsigned int SCR_HEIGHT = 600;
 
 const unsigned int ANIMATION_UPDATE_FRAMES = 5;
 
+unsigned int current_frame = 0;
+
 bool should_stop = false;
 
 AccelerationCamera camera;
@@ -59,6 +61,9 @@ void processInput(GLFWwindow *window, Shader shader) {
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
         should_stop = !should_stop;
     }
+    if (glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS) {
+        current_frame += 1;
+    } 
 
     camera.processInputForCamera(window);
 }
@@ -172,11 +177,19 @@ int main()
 
     // now I have the vertices of blazepose model
     // std::vector<std::vector<float>> positions = load_joints_all_lines("bow.txt");
-    auto [base_model, name_rotation_list] = load_blaze_model_from_file("ymca_4_adjusted_matrix.txt");
+    // auto [base_model, name_rotation_list] = load_blaze_model_from_file("ymca_4_adjusted_matrix.txt");
+    // bodymodel current_model = base_model;
+    // std::vector<std::vector<float>> positions = base_model.vectorify_positions_in_order();
+    // // flatten vertices seperate by time to single list for easy retrieval
+    // std::vector<float> flat_positions = flatten(positions);
+
+
+    auto [base_model, name_rotation_list] = load_vamp_model_from_file("vamp_raise_arms_2_blaze_vamp.txt");
     bodymodel current_model = base_model;
     std::vector<std::vector<float>> positions = base_model.vectorify_positions_in_order();
     // flatten vertices seperate by time to single list for easy retrieval
     std::vector<float> flat_positions = flatten(positions);
+
 
     // change to using 4x4 matrices, and translation matrices
 
@@ -188,9 +201,9 @@ int main()
 
 
     // path from models folder to desired obj files...
-    std::string path = std::string("./src/models/dancing_vampire/dancing_vampire.dae");
+    // std::string path = std::string("./src/models/dancing_vampire/dancing_vampire.dae");
 
-    Model local_model(path);
+    // Model local_model(path);
 
     std::cout << "CREATED SHADER" << std::endl;    
 
@@ -199,37 +212,38 @@ int main()
 
     // setting up animation
 
-    Animation danceAnimation(FileSystem::getPath(path),
-        &local_model);
-    Animator animator(&danceAnimation);
-    animator.UpdateAnimation(5.0f);
+    // Animation danceAnimation(FileSystem::getPath(path),
+    //     &local_model);
+    // Animator animator(&danceAnimation);
+    // animator.UpdateAnimation(5.0f);
 
-    bodymodel dancing_vampire = create_local_dancing_vampire_model();
-    // auto baseBone = danceAnimation.FindBone("HIPS");
-    std::cout << "_____" << std::endl;
-    auto baseNode = danceAnimation.m_RootNode.children[0];
-    getWorldPositionFromBones(baseNode, 0.01f);
+    // bodymodel dancing_vampire = create_local_dancing_vampire_model();
+    // // auto baseBone = danceAnimation.FindBone("HIPS");
+    // std::cout << "_____" << std::endl;
+    // auto baseNode = danceAnimation.m_RootNode.children[0];
+    // getWorldPositionFromBones(baseNode, 0.01f);
 
     
-    auto index_name_map = hashtable_from_const();
-    auto info_map = danceAnimation.GetBoneIDMap();
+    // auto index_name_map = hashtable_from_const();
+    // auto info_map = danceAnimation.GetBoneIDMap();
 
-    Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(FileSystem::getPath(path), aiProcess_Triangulate | aiProcess_FlipUVs);
+    // Assimp::Importer importer;
+    // const aiScene* scene = importer.ReadFile(FileSystem::getPath(path), aiProcess_Triangulate | aiProcess_FlipUVs);
 
-    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-        std::cerr << "Error loading model: " << importer.GetErrorString() << std::endl;
-        return -1;
-    }
+    // if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+    //     std::cerr << "Error loading model: " << importer.GetErrorString() << std::endl;
+    //     return -1;
+    // }
 
-    dancing_vampire.set_positions(vamp_pos);
-    std::cout << dancing_vampire.toString() << std::endl;
-    flat_positions = flatten(dancing_vampire.vectorify_positions_in_order());
+    // dancing_vampire.set_positions(vamp_pos);
+    // std::cout << dancing_vampire.toString() << std::endl;
+    // flat_positions = flatten(dancing_vampire.vectorify_positions_in_order());
 
-    dump_vampire_into_file(dancing_vampire);
-
+    // dump_vampire_into_file(dancing_vampire);
+    bodymodel blaze_model = create_adjusted_blaze_model();
     // current_model = base_model.rotate_self_by_rotations(name_rotation_list[0], current_model);
-
+    current_model = apply_rotations_to_vamp_model(name_rotation_list[0], current_model, blaze_model);
+    
     unsigned int VBO, VAO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -281,7 +295,6 @@ int main()
 
     // glLineWidth(10.0f); my gl implementation doesn't support line widths :(
     glPointSize(10.0f);
-    unsigned int current_frame = 0;
     unsigned int starting_pos = 0;
     while (!glfwWindowShouldClose(window)) {
 
@@ -334,10 +347,12 @@ int main()
         }
 
         // // update animation every 5 frames
-        if (false) {
-        // if (num_renders % ANIMATION_UPDATE_FRAMES == 0 && !should_stop) {
+        // if (false) {
+        if (true) {
             std::cout << "at frame: " << current_frame << std::endl;
-            current_model = base_model.rotate_self_by_rotations(name_rotation_list[current_frame], current_model);  
+            current_frame %= name_rotation_list.size();
+            current_model = apply_rotations_to_vamp_model(name_rotation_list[current_frame], base_model, blaze_model);
+            // current_model = base_model.rotate_self_by_rotations(name_rotation_list[current_frame], current_model);  
             flat_positions = flatten(current_model.vectorify_positions_in_order());
             glBindVertexArray(VAO);
 
@@ -348,13 +363,14 @@ int main()
             glEnableVertexAttribArray(0);
 
             glBindVertexArray(0); 
-            current_frame = (current_frame + 1) % name_rotation_list.size();
-        //     std::cout << "at frame: " << current_frame << " attempting to print vertices from " << starting_pos << " to " << ending_pos << ". " << "frame has size: " << positions[current_frame].size()  << std::endl;
-        //     starting_pos += positions[current_frame].size() / 3;
-        //     current_frame = (current_frame + 1) % positions.size();
-        //     if (current_frame == 0) {
-        //         starting_pos = 0;
-        //     }
+            if (num_renders % ANIMATION_UPDATE_FRAMES == 0 && !should_stop)
+                current_frame = (current_frame + 1);
+            // std::cout << "at frame: " << current_frame << " attempting to print vertices from " << starting_pos << " to " << ending_pos << ". " << "frame has size: " << positions[current_frame].size()  << std::endl;
+            // starting_pos += positions[current_frame].size() / 3;
+            // current_frame = (current_frame + 1) % positions.size();
+            // if (current_frame == 0) {
+            //     starting_pos = 0;
+            // }
             
         }
 

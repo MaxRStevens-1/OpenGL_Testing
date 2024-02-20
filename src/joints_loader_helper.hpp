@@ -219,6 +219,41 @@ std::tuple<bodymodel, std::vector<std::unordered_map<std::string, matrix>>> load
 }
 
 
+std::tuple<bodymodel, std::vector<std::unordered_map<std::string, matrix>>> load_vamp_model_from_file(std::string filename) {
+    std::ifstream file;
+    std::string file_string;
+    file.open(JOINT_FILEPATH + filename);
+    if (!file.is_open()) {
+        std::cout << JOINT_FILEPATH + filename << std::endl;
+        std::cout << "ERROR: FAILED TO OPEN FILE" << std::endl;
+    }
+
+    std::getline(file, file_string);
+    std::vector<position> positions = split_blaze_keypoints(file_string, true);
+    bodymodel model = create_local_dancing_vampire_model();
+
+    for (joint j : model.base_joints) {
+        std::cout << j.name << std::endl;
+        for (joint nj : model.joints_flow[j]) {
+            std::cout << nj.name << std::endl;
+        }
+        std::cout << "__________________" << std::endl;
+    }
+
+    model.set_positions(positions);
+    std::vector<std::unordered_map<std::string, matrix>> matrix_hash_list;
+    while (std::getline(file, file_string)) {
+        matrix_hash_list.push_back(matrices_from_line(file_string));
+    }
+
+    std::cout << model.toString() << std::endl;
+
+    file.close();
+    
+    return {model, matrix_hash_list};
+}
+
+
 
 std::vector<std::vector<float>> load_joints_all_lines(std::string filename) {
     std::ifstream file;

@@ -1127,12 +1127,11 @@ bodymodel apply_rotations_to_vamp_model(std::unordered_map<std::string, matrix> 
     std::vector<position> local_positions = vamp.positions;
     auto new_vamp = vamp;
 
-    // now that I have the blaze bone to vampire joint map, I should get the rotation of 
-    // each arbitrary bone b in blaze, find first bone inbetween (blaze_to_vamp[b].first, blaze_to_vamp[b].second)
-    // apply rotation to bone, then apply no more rotations until next blaze bone is reached  
-
     // iterate thru blaze model to get rotation and vamp joint
+    auto first_joint = blaze.base_joints[0];
     for (auto base_joint : blaze.base_joints) {
+        if (first_joint.name != base_joint.name) 
+            break;
         // get local rotations
         auto current_rot = blaze_rotations[base_joint.name];
         
@@ -1140,9 +1139,9 @@ bodymodel apply_rotations_to_vamp_model(std::unordered_map<std::string, matrix> 
         // TODO !! make sure that this joint is correct! by going thru its joint flow looking for the given point index 2nd post
         auto vamp_joints = blaze_vamp_mapping[base_joint.name];
         joint b_vamp_bone = vamp.get_first_parent_joint_instance(std::get<0>(vamp_joints));
-
         // apply rotation for first vamp joint
-        local_positions = vamp.rotate_single_joint(base_joint, local_positions, current_rot);
+        std::cout << base_joint.name  << ", " << b_vamp_bone.name << std::endl;
+        local_positions = vamp.rotate_single_joint(b_vamp_bone, local_positions, current_rot);
 
         for (auto local_joint : blaze.joints_flow[base_joint]) {
             // get local rotations
@@ -1152,15 +1151,12 @@ bodymodel apply_rotations_to_vamp_model(std::unordered_map<std::string, matrix> 
             // TODO !! make sure that this joint is correct! by going thru its joint flow looking for the given point index 2nd post
             auto vamp_joints = blaze_vamp_mapping[local_joint.name];
             joint b_vamp_bone = vamp.get_first_parent_joint_instance(std::get<0>(vamp_joints));
-
+            std::cout << local_joint.name  << ", " << b_vamp_bone.name << std::endl;
             // apply rotation for first vamp joint
             local_positions = vamp.rotate_single_joint(b_vamp_bone, local_positions, current_rot);
         }
     }
-
-    // what I have to do now to animate the skeleton is send vamp skeleton base model and do similar mapping of vamp skeleton joint pairs to blaze bones
-    // to calculate out the rotations transforming vamp joints to blaze
-
+    std::cout << "done full rotation\n_________________________" << std::endl;
     new_vamp.set_positions(local_positions);
     return new_vamp;
 }
@@ -1180,8 +1176,7 @@ std::unordered_map<std::string, matrix> get_vampire_blaze_rotations(bodymodel bl
 
         // lets get vampire pos indicies
         int vamp_parent_ind = std::get<0>(blaze_vamp_mapping[base_joint.name]);
-        int vamp_child_ind = std::get<0>(blaze_vamp_mapping[base_joint.name]);
-
+        int vamp_child_ind = std::get<1>(blaze_vamp_mapping[base_joint.name]);
 
         position vamp_parent = vampire.positions[vamp_parent_ind];
         position vamp_child = vampire.positions[vamp_child_ind]; 
@@ -1200,7 +1195,7 @@ std::unordered_map<std::string, matrix> get_vampire_blaze_rotations(bodymodel bl
 
             // lets get vampire pos indicies
             int vamp_parent_ind = std::get<0>(blaze_vamp_mapping[local_joint.name]);
-            int vamp_child_ind = std::get<0>(blaze_vamp_mapping[local_joint.name]);
+            int vamp_child_ind = std::get<1>(blaze_vamp_mapping[local_joint.name]);
 
 
             position vamp_parent = vampire.positions[vamp_parent_ind];
