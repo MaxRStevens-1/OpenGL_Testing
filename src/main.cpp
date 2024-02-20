@@ -184,7 +184,7 @@ int main()
     // std::vector<float> flat_positions = flatten(positions);
 
 
-    auto [base_model, name_rotation_list] = load_vamp_model_from_file("vamp_raise_arms_2_blaze_vamp.txt");
+    auto [base_model, name_rotation_list] = load_vamp_model_from_file("vamp_raise_arms_3_fixed_blaze_vamp.txt");
     bodymodel current_model = base_model;
     std::vector<std::vector<float>> positions = base_model.vectorify_positions_in_order();
     // flatten vertices seperate by time to single list for easy retrieval

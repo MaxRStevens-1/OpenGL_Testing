@@ -229,7 +229,7 @@ std::tuple<bodymodel, std::vector<std::unordered_map<std::string, matrix>>> load
     }
 
     std::getline(file, file_string);
-    std::vector<position> positions = split_blaze_keypoints(file_string, true);
+    std::vector<position> positions = split_blaze_keypoints(file_string, false);
     bodymodel model = create_local_dancing_vampire_model();
 
     for (joint j : model.base_joints) {
