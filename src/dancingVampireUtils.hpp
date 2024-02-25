@@ -182,8 +182,8 @@ std::unordered_map<std::string, std::tuple<int, int>> blaze_to_vampire_map() {
     hash["l_hip_knee"] = std::make_tuple(HIPS, RIGHT_UP_LEG);
     hash["l_knee_foot"] = std::make_tuple(RIGHT_UP_LEG, RIGHT_LEG);
 
-    hash["r_hip_knee"] = std::make_tuple(HIPS, RIGHT_UP_LEG);;
-    hash["r_knee_foot"] = std::make_tuple(RIGHT_UP_LEG, RIGHT_LEG);
+    hash["r_hip_knee"] = std::make_tuple(HIPS, LEFT_UP_LEG);;
+    hash["r_knee_foot"] = std::make_tuple(LEFT_UP_LEG, LEFT_LEG);
 
     return hash;
 }

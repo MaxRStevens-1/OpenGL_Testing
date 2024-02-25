@@ -740,6 +740,56 @@ struct bodymodel {
         }
         throw std::invalid_argument("Failed to find input index as a parent...");
     }
+
+    joint get_first_joint_that_has_child_in_flow(int parent, int child) {
+        std::vector<joint> prospects;
+        for (joint j : joints) {
+            if (j.parent_index == parent && j.child_index == child)
+                return j;
+            else if (j.parent_index == parent)
+                prospects.push_back(j);
+            
+        }
+        for (joint j : prospects) {
+            for (joint c : joints_flow[j]) {
+                if (c.child_index == child || c.parent_index == child)
+                    return j;
+            }
+        }
+        throw std::invalid_argument("Failed to find input index as a parent...");
+    }
+
+    // gets all bones between joint parent and child in bone heirachy
+    std::vector<joint> get_all_joints_between_parent_and_child(int parent, int child) {
+        // I am assuming that parent and child are in one singular path, and have no branches
+        std::vector<joint> parent_joints;
+        bool has_found_parent = false;
+        for (joint j : joints) {
+            if (j.parent_index == parent  && j.child_index == child) {
+                return {j};
+            }
+            else if (j.parent_index == parent) {
+                parent_joints.push_back(j);
+            }
+        }
+        for (joint pj : parent_joints) {
+            std::vector<joint> inbetween_joints = {pj};
+            bool has_child_in_path = false;
+            for (joint j : joints_flow[pj]) {
+                if (j.child_index == child) {
+                    inbetween_joints.push_back(j);
+                    has_child_in_path = true;
+                    break;
+                }
+
+                inbetween_joints.push_back(j);
+            }
+            if (has_child_in_path) 
+                return inbetween_joints;
+        }
+        throw std::invalid_argument("Failed to find proper input index as a parent...");
+
+    }
 };
 
 /**
@@ -1130,33 +1180,50 @@ bodymodel apply_rotations_to_vamp_model(std::unordered_map<std::string, matrix> 
     // iterate thru blaze model to get rotation and vamp joint
     auto first_joint = blaze.base_joints[0];
     for (auto base_joint : blaze.base_joints) {
-        if (first_joint.name != base_joint.name) 
-            break;
+        // if (first_joint.name != base_joint.name) 
+        //     break;
         // get local rotations
         auto current_rot = blaze_rotations[base_joint.name];
         
         // get vamp pos index tuple
-        // TODO !! make sure that this joint is correct! by going thru its joint flow looking for the given point index 2nd post
-        auto vamp_joints = blaze_vamp_mapping[base_joint.name];
-        joint b_vamp_bone = vamp.get_first_parent_joint_instance(std::get<0>(vamp_joints));
+        auto vamp_joint_indexs = blaze_vamp_mapping[base_joint.name];
+        // joint b_vamp_bone = vamp.get_first_joint_that_has_child_in_flow(
+        //     std::get<0>(vamp_joint_indexs),
+        //     std::get<1>(vamp_joint_indexs)
+        // );
+        std::vector<joint> vamp_bones = vamp.get_all_joints_between_parent_and_child(
+            std::get<0>(vamp_joint_indexs),
+            std::get<1>(vamp_joint_indexs)
+        );
         // apply rotation for first vamp joint
-        std::cout << base_joint.name  << ", " << b_vamp_bone.name << std::endl;
-        local_positions = vamp.rotate_single_joint(b_vamp_bone, local_positions, current_rot);
+        for (joint vamp_bone : vamp_bones) {
+            std::cout << "rotating " << vamp_bone.name << " with " << base_joint.name << std::endl; 
+            local_positions = vamp.rotate_single_joint(vamp_bone, local_positions, current_rot);
+        }
 
         for (auto local_joint : blaze.joints_flow[base_joint]) {
             // get local rotations
             auto current_rot = blaze_rotations[local_joint.name];
             
             // get vamp pos index tuple
-            // TODO !! make sure that this joint is correct! by going thru its joint flow looking for the given point index 2nd post
-            auto vamp_joints = blaze_vamp_mapping[local_joint.name];
-            joint b_vamp_bone = vamp.get_first_parent_joint_instance(std::get<0>(vamp_joints));
-            std::cout << local_joint.name  << ", " << b_vamp_bone.name << std::endl;
+            auto vamp_joint_indexs = blaze_vamp_mapping[local_joint.name];
+            // joint b_vamp_bone = vamp.get_first_joint_that_has_child_in_flow(
+            //     std::get<0>(vamp_joint_indexs),
+            //     std::get<1>(vamp_joint_indexs)
+            // );
+            // // apply rotation for first vamp joint
+            // local_positions = vamp.rotate_single_joint(b_vamp_bone, local_positions, current_rot);
+            std::vector<joint> vamp_bones = vamp.get_all_joints_between_parent_and_child(
+                std::get<0>(vamp_joint_indexs),
+                std::get<1>(vamp_joint_indexs)
+            );
             // apply rotation for first vamp joint
-            local_positions = vamp.rotate_single_joint(b_vamp_bone, local_positions, current_rot);
+            for (joint vamp_bone : vamp_bones) {
+                std::cout << "rotating " << vamp_bone.name << " with " << local_joint.name << std::endl; 
+                local_positions = vamp.rotate_single_joint(vamp_bone, local_positions, current_rot);
+            }
         }
     }
-    std::cout << "done full rotation\n_________________________" << std::endl;
     new_vamp.set_positions(local_positions);
     return new_vamp;
 }

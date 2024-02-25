@@ -47,10 +47,10 @@ private:
     int m_NumScalings;
 	
     glm::mat4 m_LocalTransform;
-    std::string m_Name;
     int m_ID;
 
 public:
+    std::string m_Name;
 
 /*reads keyframes from aiNodeAnim*/
     Bone(const std::string& name, int ID, const aiNodeAnim* channel)

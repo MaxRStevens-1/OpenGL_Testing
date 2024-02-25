@@ -1,3 +1,0 @@
-C:/Users/maxws/projects/OpenGL_Testing/build/CMakeFiles/glm_dummy.dir
-C:/Users/maxws/projects/OpenGL_Testing/build/CMakeFiles/ALL_BUILD.dir
-C:/Users/maxws/projects/OpenGL_Testing/build/CMakeFiles/ZERO_CHECK.dir

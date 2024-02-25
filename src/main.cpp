@@ -184,7 +184,7 @@ int main()
     // std::vector<float> flat_positions = flatten(positions);
 
 
-    auto [base_model, name_rotation_list] = load_vamp_model_from_file("vamp_raise_arms_lr_fix_blaze_vamp.txt");
+    auto [base_model, name_rotation_list] = load_vamp_model_from_file("vamp_ymca_blaze_vamp.txt");
     bodymodel current_model = base_model;
     std::vector<std::vector<float>> positions = base_model.vectorify_positions_in_order();
     // flatten vertices seperate by time to single list for easy retrieval
@@ -201,9 +201,9 @@ int main()
 
 
     // path from models folder to desired obj files...
-    // std::string path = std::string("./src/models/dancing_vampire/dancing_vampire.dae");
+    std::string path = std::string("./src/models/dancing_vampire/dancing_vampire.dae");
 
-    // Model local_model(path);
+    Model local_model(path);
 
     std::cout << "CREATED SHADER" << std::endl;    
 
@@ -212,11 +212,12 @@ int main()
 
     // setting up animation
 
-    // Animation danceAnimation(FileSystem::getPath(path),
-    //     &local_model);
-    // Animator animator(&danceAnimation);
-    // animator.UpdateAnimation(5.0f);
+    Animation danceAnimation(FileSystem::getPath(path),
+        &local_model);
+    Animator animator(&danceAnimation);
+    animator.UpdateAnimation(5.0f);
 
+    
     // bodymodel dancing_vampire = create_local_dancing_vampire_model();
     // // auto baseBone = danceAnimation.FindBone("HIPS");
     // std::cout << "_____" << std::endl;
@@ -227,13 +228,13 @@ int main()
     // auto index_name_map = hashtable_from_const();
     // auto info_map = danceAnimation.GetBoneIDMap();
 
-    // Assimp::Importer importer;
-    // const aiScene* scene = importer.ReadFile(FileSystem::getPath(path), aiProcess_Triangulate | aiProcess_FlipUVs);
+    Assimp::Importer importer;
+    const aiScene* scene = importer.ReadFile(FileSystem::getPath(path), aiProcess_Triangulate | aiProcess_FlipUVs);
 
-    // if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
-    //     std::cerr << "Error loading model: " << importer.GetErrorString() << std::endl;
-    //     return -1;
-    // }
+    if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
+        std::cerr << "Error loading model: " << importer.GetErrorString() << std::endl;
+        return -1;
+    }
 
     // dancing_vampire.set_positions(vamp_pos);
     // std::cout << dancing_vampire.toString() << std::endl;
