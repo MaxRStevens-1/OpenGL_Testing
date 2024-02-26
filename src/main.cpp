@@ -6,6 +6,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtx/string_cast.hpp>
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
@@ -190,16 +191,6 @@ int main()
     // flatten vertices seperate by time to single list for easy retrieval
     std::vector<float> flat_positions = flatten(positions);
 
-
-    // change to using 4x4 matrices, and translation matrices
-
-    // now what I create a local model representation of the 3d model
-    // also create a way to grab out positions of 3d model for a base model
-    // then create an model -> adjusted blaze model conversion
-    //  perhaps add an another var to joint, marking whether or not to perform local rotation calc?
-    //  also have a hashmap from adjusted model bone to 3d model bone 
-
-
     // path from models folder to desired obj files...
     std::string path = std::string("./src/models/dancing_vampire/dancing_vampire.dae");
 
@@ -215,14 +206,14 @@ int main()
     Animation danceAnimation(FileSystem::getPath(path),
         &local_model);
     Animator animator(&danceAnimation);
-    animator.UpdateAnimation(5.0f);
+    // animator.UpdateAnimation(5.0f);
 
     
-    // bodymodel dancing_vampire = create_local_dancing_vampire_model();
-    // // auto baseBone = danceAnimation.FindBone("HIPS");
-    // std::cout << "_____" << std::endl;
-    // auto baseNode = danceAnimation.m_RootNode.children[0];
-    // getWorldPositionFromBones(baseNode, 0.01f);
+    bodymodel dancing_vampire = create_local_dancing_vampire_model();
+    // auto baseBone = danceAnimation.FindBone("HIPS");
+    std::cout << "_____" << std::endl;
+    auto baseNode = danceAnimation.m_RootNode.children[0];
+    getWorldPositionFromBones(baseNode, 0.01f);
 
     
     // auto index_name_map = hashtable_from_const();
@@ -236,15 +227,41 @@ int main()
         return -1;
     }
 
-    // dancing_vampire.set_positions(vamp_pos);
-    // std::cout << dancing_vampire.toString() << std::endl;
+    dancing_vampire.set_positions(vamp_pos);
+    std::cout << dancing_vampire.toString() << std::endl;
+    std::cout << "___________________" << std::endl;
+    std::cout << current_model.toString() << std::endl;
+    // std::cout << danceAnimation.FindBone("Hips").
     // flat_positions = flatten(dancing_vampire.vectorify_positions_in_order());
 
     // dump_vampire_into_file(dancing_vampire);
     bodymodel blaze_model = create_adjusted_blaze_model();
+
     // current_model = base_model.rotate_self_by_rotations(name_rotation_list[0], current_model);
-    current_model = apply_rotations_to_vamp_model(name_rotation_list[0], current_model, blaze_model);
-    
+    auto [new_current_model, translation_map] = apply_rotations_to_vamp_model(name_rotation_list[0], current_model, blaze_model);
+    current_model = new_current_model;
+    std::cout << "_____________" << std::endl;
+    for (joint bj : dancing_vampire.base_joints) {
+        position new_pos;
+        if (translation_map.find(bj.name) != translation_map.end()) 
+            new_pos = translation_map[bj.name].add(dancing_vampire.positions[bj.child_index]);
+        else 
+            new_pos = dancing_vampire.positions[bj.child_index];
+
+        std::cout << "joint: " << bj.name << " pos: " << dancing_vampire.positions[bj.child_index].toString() 
+            << ", new pos: "  << new_pos.toString() << std::endl;
+        for (joint cj : dancing_vampire.joints_flow[bj]) {
+        position new_pos;
+        if (translation_map.find(cj.name) != translation_map.end()) 
+            new_pos = translation_map[cj.name].add(dancing_vampire.positions[cj.child_index]);
+        else 
+            new_pos = dancing_vampire.positions[cj.child_index];
+
+        std::cout << "joint: " << cj.name << " pos: " << dancing_vampire.positions[cj.child_index].toString() 
+            << ", new pos: "  << new_pos.toString() << std::endl;
+        }
+    }
+
     unsigned int VBO, VAO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -338,7 +355,6 @@ int main()
         // local_model.Draw(lightingShader);
 
         glBindVertexArray(VAO); 
-        // unsigned int ending_pos = positions[current_frame].size()+starting_pos;
         glDrawArrays(GL_POINTS, 0, flat_positions.size()/3);
         glDrawArrays(GL_LINES, 0, flat_positions.size()/3);
         GLenum e = glGetError();
@@ -352,7 +368,9 @@ int main()
         if (true) {
             std::cout << "at frame: " << current_frame << std::endl;
             current_frame %= name_rotation_list.size();
-            current_model = apply_rotations_to_vamp_model(name_rotation_list[current_frame], base_model, blaze_model);
+            auto [new_current_model, new_translation_map] = apply_rotations_to_vamp_model(name_rotation_list[current_frame], base_model, blaze_model);
+            current_model = new_current_model;
+            translation_map = new_translation_map;
             // current_model = base_model.rotate_self_by_rotations(name_rotation_list[current_frame], current_model);  
             flat_positions = flatten(current_model.vectorify_positions_in_order());
             glBindVertexArray(VAO);
@@ -366,7 +384,6 @@ int main()
             glBindVertexArray(0); 
             if (num_renders % ANIMATION_UPDATE_FRAMES == 0 && !should_stop)
                 current_frame = (current_frame + 1);
-            // std::cout << "at frame: " << current_frame << " attempting to print vertices from " << starting_pos << " to " << ending_pos << ". " << "frame has size: " << positions[current_frame].size()  << std::endl;
             // starting_pos += positions[current_frame].size() / 3;
             // current_frame = (current_frame + 1) % positions.size();
             // if (current_frame == 0) {

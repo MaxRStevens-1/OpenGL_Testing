@@ -60,10 +60,13 @@ public:
         m_LocalTransform(1.0f)
     {
         m_NumPositions = channel->mNumPositionKeys;
+        aiVector3D aiPosition = channel->mPositionKeys[0].mValue;
+        std::cout << "NAME: " << name << "POS ("<< aiPosition.x << ", " << aiPosition.y << ", " << aiPosition.z << std::endl;
 
         for (int positionIndex = 0; positionIndex < m_NumPositions; ++positionIndex)
         {
             aiVector3D aiPosition = channel->mPositionKeys[positionIndex].mValue;
+            
             float timeStamp = channel->mPositionKeys[positionIndex].mTime;
             KeyPosition data;
             data.position = AssimpGLMHelpers::GetGLMVec(aiPosition);

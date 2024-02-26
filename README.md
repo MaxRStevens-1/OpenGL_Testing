@@ -6,8 +6,10 @@ Here are some fun examples:
 ![So Flexible!](https://github.com/MaxRStevens-1/OpenGL_Testing/blob/skeleton_blazepose/git_gifs/bow.gif)
 
 
-ISSUES:
-
-What is currently (probably) happening is that the rotation calc or the position decomp have some axis which is inverted in blazepose, or inverted in model. This causes strange behaviors when reviewing rotations. Figure this out and fix
-
-If I had to guess, left side of the blaze != left side of vamp 
+TODO: 
+    1. I need to create a bodymodel 3dmodel vamp bone -> assimp 3d model bone / joint mapping to accurately apply transformations
+    2. create hashmap of assimp 3d model bone name -> transformation matrix  
+        A. possibly need to remake with scalar matrix instead of prescaling points
+        B. transformation = translatoin * rotation * scale
+    3. create own drawer which uses opengl model animator bone name -> indicies to pass matrices to gpu
+    4. verify / bugfix
