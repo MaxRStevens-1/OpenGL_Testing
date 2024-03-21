@@ -166,24 +166,38 @@ std::unordered_map<std::string, unsigned int> name_to_index() {
 }
 
 // now I have a map of blaze bones, to vamp model joint tuples
-std::unordered_map<std::string, std::tuple<int, int>> blaze_to_vampire_map() {
-    std::unordered_map<std::string, std::tuple<int, int>> hash;
-    hash["hip_spine"] = std::make_tuple(HIPS, SPINE_2);
+std::unordered_map<std::string, std::vector<std::tuple<int, int>>> blaze_to_vampire_map() {
+    std::unordered_map<std::string, std::vector<std::tuple<int, int>>> hash;
+    hash["hip_spine"] = {std::make_tuple(HIPS, SPINE_2)};
 
     // the left and right of the blazepose model and the 3d model are swapped :( ...
-    hash["l_spine_should"] = std::make_tuple(SPINE_2, RIGHT_ARM);
-    hash["l_should_elbow"] = std::make_tuple(RIGHT_ARM, RIGHT_FOREARM);
-    hash["l_elbow_hand"] = std::make_tuple(RIGHT_FOREARM, RIGHT_HAND);
+    hash["l_spine_should"] = {std::make_tuple(SPINE_2, RIGHT_ARM)};
+    hash["l_should_elbow"] = {std::make_tuple(RIGHT_ARM, RIGHT_FOREARM)};
+    hash["l_elbow_hand"] = {
+        std::make_tuple(RIGHT_FOREARM, RIGHT_HAND),
+        std::make_tuple(RIGHT_HAND, RIGHT_HAND_THUMB_4),
+        std::make_tuple(RIGHT_HAND, RIGHT_HAND_INDEX_4),  
+        std::make_tuple(RIGHT_HAND, RIGHT_HAND_MIDDLE_4),
+        std::make_tuple(RIGHT_HAND, RIGHT_HAND_RING_4),
+        std::make_tuple(RIGHT_HAND, RIGHT_HAND_PINKY_4)
+    };
 
-    hash["r_spine_should"] = std::make_tuple(SPINE_2, LEFT_ARM);
-    hash["r_should_elbow"] = std::make_tuple(LEFT_ARM, LEFT_FOREARM);
-    hash["r_elbow_hand"] = std::make_tuple(LEFT_FOREARM, LEFT_HAND);
+    hash["r_spine_should"] = {std::make_tuple(SPINE_2, LEFT_ARM)};
+    hash["r_should_elbow"] = {std::make_tuple(LEFT_ARM, LEFT_FOREARM)};
+    hash["r_elbow_hand"] = {
+        std::make_tuple(LEFT_FOREARM, LEFT_HAND),
+        std::make_tuple(LEFT_HAND, LEFT_HAND_THUMB_4),
+        std::make_tuple(LEFT_HAND, LEFT_HAND_INDEX_4),  
+        std::make_tuple(LEFT_HAND, LEFT_HAND_MIDDLE_4),
+        std::make_tuple(LEFT_HAND, LEFT_HAND_RING_4),
+        std::make_tuple(LEFT_HAND, LEFT_HAND_PINKY_4)
+    };
 
-    hash["l_hip_knee"] = std::make_tuple(HIPS, RIGHT_UP_LEG);
-    hash["l_knee_foot"] = std::make_tuple(RIGHT_UP_LEG, RIGHT_LEG);
+    hash["l_hip_knee"] = {std::make_tuple(HIPS, RIGHT_UP_LEG)};
+    hash["l_knee_foot"] = {std::make_tuple(RIGHT_UP_LEG, RIGHT_LEG)};
 
-    hash["r_hip_knee"] = std::make_tuple(HIPS, LEFT_UP_LEG);;
-    hash["r_knee_foot"] = std::make_tuple(LEFT_UP_LEG, LEFT_LEG);
+    hash["r_hip_knee"] = {std::make_tuple(HIPS, LEFT_UP_LEG)};
+    hash["r_knee_foot"] = {std::make_tuple(LEFT_UP_LEG, LEFT_LEG)};
 
     return hash;
 }

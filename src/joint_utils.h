@@ -1212,7 +1212,6 @@ std::tuple<bodymodel, std::unordered_map<std::string, position>> apply_rotations
     auto new_vamp = vamp;
     std::unordered_map<std::string, position> translation_map;
 
-
     // iterate thru blaze model to get rotation and vamp joint
     auto first_joint = blaze.base_joints[0];
     for (auto base_joint : blaze.base_joints) {
@@ -1221,15 +1220,18 @@ std::tuple<bodymodel, std::unordered_map<std::string, position>> apply_rotations
         
         // get vamp pos index tuple
         auto vamp_joint_indexs = blaze_vamp_mapping[base_joint.name];
-        std::vector<joint> vamp_bones = vamp.get_all_joints_between_parent_and_child(
-            std::get<0>(vamp_joint_indexs),
-            std::get<1>(vamp_joint_indexs)
-        );
-        // apply rotation for each  joint
-        for (joint vamp_bone : vamp_bones) {
-            // local_positions = vamp.rotate_single_joint_with_translation_map(vamp_bone, local_positions, current_rot, translation_map);
-            vamp.rotate_single_joint_with_translation_map(vamp_bone, current_rot, local_positions, translation_map);
+        for (auto joint_tuple : vamp_joint_indexs) {
+            std::vector<joint> vamp_bones = vamp.get_all_joints_between_parent_and_child(
+                std::get<0>(joint_tuple),
+                std::get<1>(joint_tuple)
+            );
+            // apply rotation for each  joint
+            for (joint vamp_bone : vamp_bones) {
+                // local_positions = vamp.rotate_single_joint_with_translation_map(vamp_bone, local_positions, current_rot, translation_map);
+                vamp.rotate_single_joint_with_translation_map(vamp_bone, current_rot, local_positions, translation_map);
+            }
         }
+
 
         for (auto local_joint : blaze.joints_flow[base_joint]) {
             // get local rotations
@@ -1237,15 +1239,18 @@ std::tuple<bodymodel, std::unordered_map<std::string, position>> apply_rotations
             
             // get vamp pos index tuple
             auto vamp_joint_indexs = blaze_vamp_mapping[local_joint.name];
-            std::vector<joint> vamp_bones = vamp.get_all_joints_between_parent_and_child(
-                std::get<0>(vamp_joint_indexs),
-                std::get<1>(vamp_joint_indexs)
-            );
-            // apply rotation for each joint
-            for (joint vamp_bone : vamp_bones) {
-                // local_positions = vamp.rotate_single_joint_with_translation_map(vamp_bone, local_positions, current_rot, translation_map);
-                vamp.rotate_single_joint_with_translation_map(vamp_bone, current_rot, local_positions, translation_map);
+            for (auto joint_tuple : vamp_joint_indexs) {
+                std::vector<joint> vamp_bones = vamp.get_all_joints_between_parent_and_child(
+                    std::get<0>(joint_tuple),
+                    std::get<1>(joint_tuple)
+                );
+                // apply rotation for each joint
+                for (joint vamp_bone : vamp_bones) {
+                    // local_positions = vamp.rotate_single_joint_with_translation_map(vamp_bone, local_positions, current_rot, translation_map);
+                    vamp.rotate_single_joint_with_translation_map(vamp_bone, current_rot, local_positions, translation_map);
+                }
             }
+
         }
     }
     new_vamp.set_positions(local_positions);
@@ -1266,8 +1271,9 @@ std::unordered_map<std::string, matrix> get_vampire_blaze_rotations(bodymodel bl
         position rel_curr_child = curr_child.subtract(curr_parent);
 
         // lets get vampire pos indicies
-        int vamp_parent_ind = std::get<0>(blaze_vamp_mapping[base_joint.name]);
-        int vamp_child_ind = std::get<1>(blaze_vamp_mapping[base_joint.name]);
+        // (grabs first position as only mutiple one is hands)
+        int vamp_parent_ind = std::get<0>(blaze_vamp_mapping[base_joint.name][0]);
+        int vamp_child_ind = std::get<1>(blaze_vamp_mapping[base_joint.name][0]);
 
         position vamp_parent = vampire.positions[vamp_parent_ind];
         position vamp_child = vampire.positions[vamp_child_ind]; 
@@ -1285,8 +1291,9 @@ std::unordered_map<std::string, matrix> get_vampire_blaze_rotations(bodymodel bl
             position rel_curr_child = curr_child.subtract(curr_parent);
 
             // lets get vampire pos indicies
-            int vamp_parent_ind = std::get<0>(blaze_vamp_mapping[local_joint.name]);
-            int vamp_child_ind = std::get<1>(blaze_vamp_mapping[local_joint.name]);
+        // (grabs first position as only mutiple one is hands)
+            int vamp_parent_ind = std::get<0>(blaze_vamp_mapping[local_joint.name][0]);
+            int vamp_child_ind = std::get<1>(blaze_vamp_mapping[local_joint.name][0]);
 
 
             position vamp_parent = vampire.positions[vamp_parent_ind];
