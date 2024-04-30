@@ -2,8 +2,8 @@ This is my personal repo for following along with the openGL tutorial, with a mi
 
 Here are some fun examples:
 
-![WHEEE](https://github.com/MaxRStevens-1/OpenGL_Testing/blob/skeleton_blazepose/git_gifs/sping.gif)
-![So Flexible!](https://github.com/MaxRStevens-1/OpenGL_Testing/blob/skeleton_blazepose/git_gifs/bow.gif)
+![WHEEE](https://github.com/MaxRStevens-1/OpenGL_Testing/blob/skeleton_blazepose/docs/assets/sping.gif)
+![So Flexible!](https://github.com/MaxRStevens-1/OpenGL_Testing/blob/skeleton_blazepose/docs/assets/bow.gif)
 
 
 TODO: 
