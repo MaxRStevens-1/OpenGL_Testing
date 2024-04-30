@@ -1,9 +1,111 @@
 {
     "files.associations": {
-        "ios": "cpp",
-        "iosfwd": "cpp",
-        "xstring": "cpp",
-        "iostream": "cpp",
-        "sstream": "cpp"
-    }
+      "ios": "cpp",
+      "iosfwd": "cpp",
+      "xstring": "cpp",
+      "iostream": "cpp",
+      "sstream": "cpp",
+      "array": "cpp",
+      "atomic": "cpp",
+      "*.tcc": "cpp",
+      "cctype": "cpp",
+      "clocale": "cpp",
+      "cmath": "cpp",
+      "cstdarg": "cpp",
+      "cstddef": "cpp",
+      "cstdint": "cpp",
+      "cstdio": "cpp",
+      "cstdlib": "cpp",
+      "cstring": "cpp",
+      "ctime": "cpp",
+      "cwchar": "cpp",
+      "cwctype": "cpp",
+      "deque": "cpp",
+      "unordered_map": "cpp",
+      "vector": "cpp",
+      "exception": "cpp",
+      "algorithm": "cpp",
+      "functional": "cpp",
+      "iterator": "cpp",
+      "memory": "cpp",
+      "memory_resource": "cpp",
+      "optional": "cpp",
+      "string": "cpp",
+      "string_view": "cpp",
+      "system_error": "cpp",
+      "tuple": "cpp",
+      "type_traits": "cpp",
+      "utility": "cpp",
+      "fstream": "cpp",
+      "initializer_list": "cpp",
+      "iomanip": "cpp",
+      "istream": "cpp",
+      "limits": "cpp",
+      "new": "cpp",
+      "ostream": "cpp",
+      "stdexcept": "cpp",
+      "streambuf": "cpp",
+      "cinttypes": "cpp",
+      "typeinfo": "cpp",
+      "chrono": "cpp",
+      "codecvt": "cpp",
+      "list": "cpp",
+      "map": "cpp",
+      "ratio": "cpp",
+      "set": "cpp",
+      "bit": "cpp",
+      "charconv": "cpp",
+      "compare": "cpp",
+      "concepts": "cpp",
+      "format": "cpp",
+      "forward_list": "cpp",
+      "locale": "cpp",
+      "unordered_set": "cpp",
+      "xfacet": "cpp",
+      "xhash": "cpp",
+      "xiosbase": "cpp",
+      "xlocale": "cpp",
+      "xlocbuf": "cpp",
+      "xlocinfo": "cpp",
+      "xlocmes": "cpp",
+      "xlocmon": "cpp",
+      "xlocnum": "cpp",
+      "xloctime": "cpp",
+      "xmemory": "cpp",
+      "xtr1common": "cpp",
+      "xtree": "cpp",
+      "xutility": "cpp",
+      "regex": "cpp"
+    },
+    "pathSeparator": "/",
+    "cmake.sourceDirectory": "C:/Users/maxws/projects/OpenGL_Testing/build",
+    "terminal.integrated.profiles.windows": {
+        "PowerShell": {
+          "source": "PowerShell",
+          "icon": "terminal-powershell"
+        },
+        "Command Prompt": {
+          "path": [
+            "${env:windir}\\Sysnative\\cmd.exe",
+            "${env:windir}\\System32\\cmd.exe"
+          ],
+          "args": [],
+          "icon": "terminal-cmd"
+        },
+        "Git Bash": {
+          "source": "Git Bash"
+        },
+        "MSYS2": {
+          "path": "C:\\msys64\\usr\\bin\\bash.exe",
+          "args": [
+            "--login",
+            "-i"
+          ],
+          "env": {
+            "MSYSTEM": "MINGW64",
+            "CHERE_INVOKING": "1"
+          }
+        }
+      },
+    
 }

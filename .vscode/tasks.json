@@ -2,19 +2,20 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "cppbuild",
+            "type": "shell",
             "label": "C/C++: g++.exe build active file",
-            "command": "g++",
+            "command": "C:/msys64/mingw64/bin/g++.exe",
             "args": [
                 "-g",
                 "-std=c++17",
                 "-I./include",
                 "-L./lib",
-                "src/\\*.cpp",
-                "src/glad.c",
+                "C:/Users/maxws/projects/OpenGL_Testing/src/\\*.cpp",
+                "C:/Users/maxws/projects/OpenGL_Testing/src/\\*.c",
                 "-lglfw3dll",
+                "-lassimp",
                 "-o",
-                "${workspaceFolder}/myprogram.exe"
+                "myprogram",
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
@@ -26,6 +27,7 @@
                 "kind": "build",
                 "isDefault": true
             },
+            "detail": "compiler: g++"
         }
     ]
 }

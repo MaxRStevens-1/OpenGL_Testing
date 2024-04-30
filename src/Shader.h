@@ -20,7 +20,6 @@ public:
         std::vector<std::string> shader_files_raw = loadShadersFromDirectory(directoryName);
         const char* vertexShaderSource = shader_files_raw[0].c_str();
         const char* fragmentShaderSource = shader_files_raw[1].c_str();
-
         unsigned int vertex, fragment;
         int success;
         char infoLog[512];
@@ -74,6 +73,15 @@ public:
 
     void setFloat (const std::string &name, float value) const {
         glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
+    }
+
+    void setVec3(const std::string &name, const float a, const float b, const float c) const {
+        // glm::vec3 new_vec = glm::vec3(a, b, c);
+        glUniform3f(glGetUniformLocation(ID, name.c_str()), a, b, c);
+    }
+
+    void setVec3(const std::string &name, glm::vec3 &new_vec) const {
+        glUniform3fv(glGetUniformLocation(ID, name.c_str()), 1, &new_vec[0]);
     }
 
     void setMat4(const std::string &name,  const glm::mat4 &mat4) const {
