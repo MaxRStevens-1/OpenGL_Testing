@@ -1,5 +1,5 @@
-#ifndef JOINT_UTILS_H
-#define JOINT_UTILS_H
+#ifndef SKELETON_UTILS_H
+#define SKELETON_UTILS_H
 
 #include <iostream>
 #include <vector>
@@ -286,6 +286,7 @@ struct matrix {
         float h = mat[2][1];
         float i = mat[2][2];
 
+        // TODO does this actually convert to col major format??
         float temp[16] = {
             a, b, c, 0,
             d, e, f, 0,
@@ -337,7 +338,7 @@ struct position_pair {
 };
 
 
-struct joint {
+struct bone {
     // index in position list
     int parent_index;
     int child_index;
@@ -345,12 +346,12 @@ struct joint {
     bool single_shot;
     std::string name;
 
-    joint() {
+    bone() {
 
     }
 
 
-    joint(int p_ind, int c_ind, std::string given_name, bool is_single_shot=false) {
+    bone(int p_ind, int c_ind, std::string given_name, bool is_single_shot=false) {
         parent_index = p_ind;
         child_index = c_ind;
         name = given_name;
@@ -361,14 +362,14 @@ struct joint {
         return "(" + std::to_string(parent_index) + ", " + std::to_string(child_index) + ")";
     }
 
-    bool operator==(const joint &j) const {
+    bool operator==(const bone &j) const {
         return parent_index == j.parent_index && child_index == j.child_index && single_shot == j.single_shot;
     }
 };
 
-struct JointHasher {
+struct BoneHasher {
 
-        std::size_t operator()(const joint& k) const
+        std::size_t operator()(const bone& k) const
         {
             using std::size_t;
             using std::hash;
@@ -387,26 +388,6 @@ struct JointHasher {
 };
 
 
-
-struct position_over_time {
-   std::vector<std::vector<position>> positions;
-
-   std::vector<std::unordered_map<joint, position, JointHasher>> joint_maps;
-    
-    /**
-     * @brief adds positions to local arrays
-     * 
-     * @param p 
-     */
-    void add_position(std::vector<position> p) {
-        positions.push_back(p);
-    }
-
-    void add_map(std::unordered_map<joint, position, JointHasher> jm) {
-        joint_maps.push_back(jm);
-    }
-};
-
 matrix rodrigues(position base_pos, position new_pos) {
     position new_norm = new_pos.normalize();
     position base_norm = base_pos.normalize();
@@ -417,6 +398,7 @@ matrix rodrigues(position base_pos, position new_pos) {
     if (cross.magnitude() == 0)  {
         cross = position(0, 1, 0);
         std::cout << "CROSS PRODUCT HAS MAGNITUTDE OF 0" << std::endl;
+        // NOTE !! This is an error edge case. if this is ever seen the resulting rotation is WRONG
     }
 
     float cosin = base_norm.dot(new_norm);
@@ -432,29 +414,29 @@ matrix rodrigues(position base_pos, position new_pos) {
 }
 
 struct bodymodel {
-   std::vector<joint> joints;
-   std::unordered_map<joint,std::vector<joint>, JointHasher> joints_flow;
+   std::vector<bone> bones;
+   std::unordered_map<bone,std::vector<bone>, BoneHasher> bones_flow;
    std::vector<position> positions;
     // base set of joints, starting points of model
-   std::vector<joint> base_joints;
+   std::vector<bone> base_bones;
 
-    std::unordered_map <std::string, joint> name_joint_hash;
+    std::unordered_map <std::string, bone> name_bone_hash;
 
     // blank model
     bodymodel () {
 
     }
 
-    bodymodel(std::vector<joint> incoming_joints, int base_index) {
-        joints = incoming_joints;
-        create_flow_fromm_joints(base_index);
+    bodymodel(std::vector<bone> incoming_joints, int base_index) {
+        bones = incoming_joints;
+        create_flow_fromm_bones(base_index);
         create_name_joint_hash();
        std::vector<position> positions;
     }
 
     void create_name_joint_hash() {
-        for (joint j : joints) {
-            name_joint_hash[j.name] = j;
+        for (bone j : bones) {
+            name_bone_hash[j.name] = j;
         }
     }
 
@@ -472,13 +454,13 @@ struct bodymodel {
     std::vector<std::vector<float>> vectorify_positions_in_order() {
         std::vector<std::vector<float>> pos;
 
-        for (joint base : base_joints) {
+        for (bone base : base_bones) {
             // first step case
             position p_pos = positions[base.parent_index];
             position c_pos = positions[base.child_index];
             pos.push_back(p_pos.to_vector());
             pos.push_back(c_pos.to_vector());
-            for (joint j : joints_flow[base]) { 
+            for (bone j : bones_flow[base]) { 
                 p_pos = positions[j.parent_index];
                 c_pos = positions[j.child_index];
                 pos.push_back(p_pos.to_vector());
@@ -491,56 +473,56 @@ struct bodymodel {
 
 
     std::unordered_map<std::string, matrix> construct_rotations(bodymodel base) {
-        std::unordered_map<std::string, matrix> joint_name_to_rotation;
-        for (joint j : base_joints) {
+        std::unordered_map<std::string, matrix> bone_name_to_rotation;
+        for (bone j : base_bones) {
             position parent = positions[j.parent_index];
             position child = positions[j.child_index];
             //now adjust with parent as origin
             child = child.subtract(parent);
 
-            joint base_joint = base.name_joint_hash[j.name];
+            bone base_bone = base.name_bone_hash[j.name];
             // base parent as origin
-            position base_parent = base.positions[base_joint.parent_index];
-            position base_child = base.positions[base_joint.child_index];
+            position base_parent = base.positions[base_bone.parent_index];
+            position base_child = base.positions[base_bone.child_index];
             base_child = base_child.subtract(base_parent);            
             // std::cout << "child " << child.toString() << " base child " << base_child.toString() << std::endl;
             matrix rotation = rodrigues(base_child , child);
             // std::cout << "constructed matrix is: \n" << rotation.to_string() << std::endl;
             // NOTE !! To rotate point A to point B, you will need to normalize point A, and then multiple
-            // by the joints base distance. This is to prevent bone lengths changing due to model instability
-            joint_name_to_rotation[j.name] = rotation;
-            for (joint next_j : joints_flow[j]) {
+            // by the bones base distance. This is to prevent bone lengths changing due to model instability
+            bone_name_to_rotation[j.name] = rotation;
+            for (bone next_j : bones_flow[j]) {
                 parent = positions[next_j.parent_index];
                 child = positions[next_j.child_index];
                 //now adjust with parent as origin
                 child = child.subtract(parent);
-                base_joint = base.name_joint_hash[next_j.name];
+                base_bone = base.name_bone_hash[next_j.name];
                 // base parent as origin
-                base_parent = base.positions[base_joint.parent_index];
-                base_child = base.positions[base_joint.child_index];
+                base_parent = base.positions[base_bone.parent_index];
+                base_child = base.positions[base_bone.child_index];
 
                 base_child = base_child.subtract(base_parent); 
                 // std::cout << "child " << child.toString() << " base child " << base_child.toString() << std::endl;
                 rotation = rodrigues(base_child, child);
                 // std::cout << "constructed matrix is: \n" << rotation.to_string() << std::endl;
 
-                joint_name_to_rotation[next_j.name] = rotation;
+                bone_name_to_rotation[next_j.name] = rotation;
             }
         }
-        return joint_name_to_rotation;
+        return bone_name_to_rotation;
     }
 
     bodymodel rotate_self_by_rotations(std::unordered_map<std::string, matrix> rotations, bodymodel new_model) {
         std::vector<position> local_positions = positions;
 
-        for (joint j : base_joints) {
+        for (bone j : base_bones) {
             matrix current_matrix = rotations[j.name];
-            local_positions = rotate_single_joint(j, local_positions, current_matrix);
-            for (joint next_j : joints_flow[j]) {
+            local_positions = rotate_single_bone(j, local_positions, current_matrix);
+            for (bone next_j : bones_flow[j]) {
                 if (next_j.name == "rl_should")
                     continue;
                 current_matrix = rotations[next_j.name];
-                local_positions = rotate_single_joint(next_j, local_positions, current_matrix);
+                local_positions = rotate_single_bone(next_j, local_positions, current_matrix);
             }
         }
 
@@ -549,7 +531,7 @@ struct bodymodel {
 
     }
 
-    std::vector<position> rotate_single_joint(joint j, std::vector<position> local_positions, matrix current_rot) {
+    std::vector<position> rotate_single_bone(bone j, std::vector<position> local_positions, matrix current_rot) {
         position parent = local_positions[j.parent_index];
         position child = local_positions[j.child_index];
 
@@ -559,15 +541,15 @@ struct bodymodel {
         local_positions[j.child_index] = rotated_pos;
         // now apply translation downstream
         position position_diff = rotated_pos.subtract(child);
-        for (joint dj : joints_flow[j]) {                    
+        for (bone dj : bones_flow[j]) {                    
             local_positions[dj.child_index] = local_positions[dj.child_index].add(position_diff);
         }
         // std::cout << std::endl;
         return local_positions;
     }
 
-    void rotate_single_joint_with_translation_map(
-        joint j, 
+    void rotate_single_bone_with_translation_map(
+        bone j, 
         matrix current_rot, 
         std::vector<position>& local_positions, 
         std::unordered_map<std::string, position>& map) 
@@ -581,7 +563,7 @@ struct bodymodel {
         local_positions[j.child_index] = rotated_pos;
         // now apply translation downstream
         position position_diff = rotated_pos.subtract(child);
-        for (joint dj : joints_flow[j]) {                    
+        for (bone dj : bones_flow[j]) {                    
             local_positions[dj.child_index] = local_positions[dj.child_index].add(position_diff);
             // add tranlsation to map
             if (map.find(dj.name) == map.end())
@@ -599,14 +581,14 @@ struct bodymodel {
             return "";
         }
         std::string return_string = "";
-        // iterate through all joints in stream
+        // iterate through all bones in stream
         
-        for (joint base : base_joints) {
+        for (bone base : base_bones) {
             // first step case
             position p_pos = local_pos[base.parent_index];
             position c_pos = local_pos[base.child_index];
             return_string += base.name + ": {" + p_pos.toString() +", "+ c_pos.toString() + " }, ";
-            for (joint j : joints_flow[base]) { 
+            for (bone j : bones_flow[base]) { 
                 p_pos = local_pos[j.parent_index];
                 c_pos = local_pos[j.child_index];
                 return_string += j.name + ": {" + p_pos.toString() +", "+ c_pos.toString() + " }, ";
@@ -622,13 +604,13 @@ struct bodymodel {
             return "";
         }
         std::string return_string = "";
-        // iterate through all joints in stream
-        for (joint base : base_joints) {
+        // iterate through all bones in stream
+        for (bone base : base_bones) {
             // first step case
             position p_pos = local_pos[base.parent_index];
             position c_pos = local_pos[base.child_index];
             return_string += p_pos.toString();
-            for (joint j : joints_flow[base]) { 
+            for (bone j : bones_flow[base]) { 
                 p_pos = local_pos[j.parent_index];
                 c_pos = local_pos[j.child_index];
                 return_string += c_pos.toString();
@@ -642,76 +624,75 @@ struct bodymodel {
         positions = new_positions;
     }
 
-    position_pair get_joints_positions (joint chosen_joint) {
-        return position_pair {positions[chosen_joint.parent_index], positions[chosen_joint.child_index]};
-
+    position_pair get_bones_positions (bone chosen_bone) {
+        return position_pair {positions[chosen_bone.parent_index], positions[chosen_bone.child_index]};
     }
 
-    void create_flow_fromm_joints (int base_index) {
-       std::vector<joint> immediate_children;
-        for (int i = 0; i < joints.size(); i++) {
-            if (joints[i].parent_index == base_index && !joints[i].single_shot) {
-                immediate_children.push_back(joints[i]);
+    void create_flow_fromm_bones (int base_index) {
+       std::vector<bone> immediate_children;
+        for (int i = 0; i < bones.size(); i++) {
+            if (bones[i].parent_index == base_index && !bones[i].single_shot) {
+                immediate_children.push_back(bones[i]);
             }
         }
-        for (joint child: immediate_children) {
+        for (bone child: immediate_children) {
             create_flow_helper(child);
         }
-        base_joints = immediate_children;
+        base_bones = immediate_children;
     }
 
     /**
      * @brief Recursive helper for constructing model stream flow
      * 
-     * Finds each immediate downstream joint of the parent joint,
-     *  recursively calls this method on each child and childs downstream joints to its own,
-     *  and sets the joints_flow hashmap to all of its downstream joints in order of the 
-     *  furthest upstream joint first
+     * Finds each immediate downstream base of the parent base,
+     *  recursively calls this method on each child and childs downstream bones to its own,
+     *  and sets the bones_flow hashmap to all of its downstream bones in order of the 
+     *  furthest upstream bones first
      * @param parent 
-     * @return std::vector<joint> 
+     * @return std::vector<bone> 
      */
-   std::vector<joint> create_flow_helper (joint parent) {
+   std::vector<bone> create_flow_helper (bone parent) {
         // find children of parent
-       std::vector<joint> downstream;
+       std::vector<bone> downstream;
         if (parent.single_shot) 
             return downstream;
-        for (int i = 0; i < joints.size(); i++) {
-            joint current_joint = joints[i];
+        for (int i = 0; i < bones.size(); i++) {
+            bone current_bone = bones[i];
             // if is a child of parent, and is a parent itself,
-            //  joint is downstream
-            if (parent.child_index == current_joint.parent_index) {
-                downstream.push_back(current_joint);
-               std::vector<joint> child_downstream = create_flow_helper(current_joint);
+            //  bones is downstream
+            if (parent.child_index == current_bone.parent_index) {
+                downstream.push_back(current_bone);
+               std::vector<bone> child_downstream = create_flow_helper(current_bone);
                 downstream.insert(downstream.end(), child_downstream.begin(), child_downstream.end());
             }
         }
-        joints_flow[parent] = downstream;
+        bones_flow[parent] = downstream;
         return downstream;
     }
 
 
     /**
-     * @brief gets the relative xyz position of joints in positions and returns a hashmap which 
+     * @brief gets the relative xyz position of bones in positions and returns a hashmap which 
      * 
-     * @return unordered_map<joint, position, JointHasher> 
+     * @return unordered_map<bone, position, BaseHasher> 
      */
-    std::unordered_map<joint, position, JointHasher> get_joint_relative_positions () {
+    std::unordered_map<bone, position, BoneHasher> get_bone_relative_positions () {
        std::vector <position> local_pos = positions;
-        std::unordered_map<joint, position, JointHasher> relative_pos;
+        std::unordered_map<bone, position, BoneHasher> relative_pos;
         // fail case
         if (positions.size() == 0){
             return relative_pos;
         }
-        // iterate through all joints in stream
-        for (joint base : base_joints) {
+        // iterate through all bones in stream
+        for (bone base : base_bones) {
 
             // first step case
             position p_pos = local_pos[base.parent_index];
             position c_pos = local_pos[base.child_index];
             position difference = p_pos.subtract(c_pos);
             relative_pos[base] = difference;
-            // for each child of base joint in order, find local difference
-            for (joint j : joints_flow[base]) {
+            // for each child of base bones in order, find local difference
+            for (bone j : bones_flow[base]) {
                 position p_pos = local_pos[j.parent_index];
                 position c_pos = local_pos[j.child_index];
                 position difference = p_pos.subtract(c_pos);
@@ -726,23 +707,23 @@ struct bodymodel {
      * 
      * @returnstd::vector<position> 
      */
-   std::vector<position> getJointRelativePositionsFlat() {
+   std::vector<position> get_bone_relative_positions_flat() {
        std::vector <position> local_pos = positions;
        std::vector <position> relative_pos;
 
         if (positions.size() == 0){
             return relative_pos;
         }
-        // iterate through all joints in stream
-        for (joint base : base_joints) {
+        // iterate through all bones in stream
+        for (bone base : base_bones) {
 
             // first step case
             position p_pos = local_pos[base.parent_index];
             position c_pos = local_pos[base.child_index];
             position difference = p_pos.subtract(c_pos);
             relative_pos.push_back(difference);
-            // for each child of base joint in order, find local difference
-            for (joint j : joints_flow[base]) {
+            // for each child of base base in order, find local difference
+            for (bone j : bones_flow[base]) {
                 position p_pos = local_pos[j.parent_index];
                 position c_pos = local_pos[j.child_index];
                 position difference = p_pos.subtract(c_pos);
@@ -752,18 +733,18 @@ struct bodymodel {
         return relative_pos;
     }
 
-    std::vector<joint> get_parent_joints_of_pos_index(int index) {
-        std::vector<joint> local_joints;
-        for (joint j : joints) {
+    std::vector<bone> get_parent_bones_of_pos_index(int index) {
+        std::vector<bone> local_bones;
+        for (bone j : bones) {
             if (j.parent_index == index) {
-                local_joints.push_back(j);
+                local_bones.push_back(j);
             }
         }
-        return local_joints;
+        return local_bones;
     }
 
-    joint get_first_parent_joint_instance(int index) {
-        for (joint j : joints) {
+    bone get_first_parent_bone_instance(int index) {
+        for (bone j : bones) {
             if (j.parent_index == index) {
                 return j;
             }
@@ -771,17 +752,17 @@ struct bodymodel {
         throw std::invalid_argument("Failed to find input index as a parent...");
     }
 
-    joint get_first_joint_that_has_child_in_flow(int parent, int child) {
-        std::vector<joint> prospects;
-        for (joint j : joints) {
+    bone get_first_bone_that_has_child_in_flow(int parent, int child) {
+        std::vector<bone> prospects;
+        for (bone j : bones) {
             if (j.parent_index == parent && j.child_index == child)
                 return j;
             else if (j.parent_index == parent)
                 prospects.push_back(j);
             
         }
-        for (joint j : prospects) {
-            for (joint c : joints_flow[j]) {
+        for (bone j : prospects) {
+            for (bone c : bones_flow[j]) {
                 if (c.child_index == child || c.parent_index == child)
                     return j;
             }
@@ -789,33 +770,33 @@ struct bodymodel {
         throw std::invalid_argument("Failed to find input index as a parent...");
     }
 
-    // gets all bones between joint parent and child in bone heirachy
-    std::vector<joint> get_all_joints_between_parent_and_child(int parent, int child) {
+    // gets all bones between bone parent and child in bone heirachy
+    std::vector<bone> get_all_bone_between_parent_and_child(int parent, int child) {
         // I am assuming that parent and child are in one singular path, and have no branches
-        std::vector<joint> parent_joints;
+        std::vector<bone> parent_bone;
         bool has_found_parent = false;
-        for (joint j : joints) {
+        for (bone j : bones) {
             if (j.parent_index == parent  && j.child_index == child) {
                 return {j};
             }
             else if (j.parent_index == parent) {
-                parent_joints.push_back(j);
+                parent_bone.push_back(j);
             }
         }
-        for (joint pj : parent_joints) {
-            std::vector<joint> inbetween_joints = {pj};
+        for (bone pj : parent_bone) {
+            std::vector<bone> inbetween_bones = {pj};
             bool has_child_in_path = false;
-            for (joint j : joints_flow[pj]) {
+            for (bone j : bones_flow[pj]) {
                 if (j.child_index == child) {
-                    inbetween_joints.push_back(j);
+                    inbetween_bones.push_back(j);
                     has_child_in_path = true;
                     break;
                 }
 
-                inbetween_joints.push_back(j);
+                inbetween_bones.push_back(j);
             }
             if (has_child_in_path) 
-                return inbetween_joints;
+                return inbetween_bones;
         }
         throw std::invalid_argument("Failed to find proper input index as a parent...");
 
@@ -828,87 +809,87 @@ struct bodymodel {
  *  R_HIP INDEX is 23
  * 
  * @param positions 
- * @returnstd::vector<joint> 
+ * @returnstd::vector<bone> 
  */
 bodymodel create_blaze_body_model () {
 
-    int BLAZE_BASE_JOINT = 23;
+    int BLAZE_BASE_BONE = 23;
 
-   std::vector<joint> blaze_joints;
+   std::vector<bone> blaze_bones;
     // right arm
-    joint r_should_eblow (11, 13, "r_should_elbow");
-    joint r_elbow_wrist  (13, 15, "r_elbow_wrist");
-    joint r_wrist_thumb  (15, 21, "r_wrist_thumb");
-    joint r_wrist_pinky  (15, 17, "r_wrist_pinky");
-    joint r_wrist_index  (15, 19, "r_wrist_index");
+    bone r_should_eblow (11, 13, "r_should_elbow");
+    bone r_elbow_wrist  (13, 15, "r_elbow_wrist");
+    bone r_wrist_thumb  (15, 21, "r_wrist_thumb");
+    bone r_wrist_pinky  (15, 17, "r_wrist_pinky");
+    bone r_wrist_index  (15, 19, "r_wrist_index");
     // probably don't need
     //joint r_index_pinky  (19, 17, true);
 
     // left arms
-    joint l_should_elbow (12, 14, "l_should_elbow");
-    joint l_elbow_wrist  (14, 16, "l_elbow_wrist");
-    joint l_wrist_thumb  (16, 22, "l_wrist_thumb");
-    joint l_wrist_index  (16, 20, "l_wrist_index");
-    joint l_wrist_pinky  (16, 18, "l_wrist_pinky");
+    bone l_should_elbow (12, 14, "l_should_elbow");
+    bone l_elbow_wrist  (14, 16, "l_elbow_wrist");
+    bone l_wrist_thumb  (16, 22, "l_wrist_thumb");
+    bone l_wrist_index  (16, 20, "l_wrist_index");
+    bone l_wrist_pinky  (16, 18, "l_wrist_pinky");
     // probably don't need
     //joint l_index_pinky  (20, 18, true);
 
     // right leg
-    joint r_hip_knee   (23, 25, "r_hip_knee");
-    joint r_knee_ankle (25, 27, "r_knee_ankle");
-    joint r_ankle_heel (27, 29, "r_ankle_heel");
-    joint r_ankle_foot (27, 31, "r_ankle_foot");
+    bone r_hip_knee   (23, 25, "r_hip_knee");
+    bone r_knee_ankle (25, 27, "r_knee_ankle");
+    bone r_ankle_heel (27, 29, "r_ankle_heel");
+    bone r_ankle_foot (27, 31, "r_ankle_foot");
     // probably don't need
     //joint r_heel_foot  (29, 31, true);
 
     // left leg
-    joint l_hip_knee   (24, 26, "l_hip_knee");
-    joint l_knee_ankle (26, 28, "l_knee_ankle");
-    joint l_ankle_heel (28, 30, "l_ankle_heel");
-    joint l_ankle_foot (28, 32, "l_ankle_foot");
+    bone l_hip_knee   (24, 26, "l_hip_knee");
+    bone l_knee_ankle (26, 28, "l_knee_ankle");
+    bone l_ankle_heel (28, 30, "l_ankle_heel");
+    bone l_ankle_foot (28, 32, "l_ankle_foot");
     //joint l_heel_foot  (30, 32, true);
 
     // center body
-    joint lr_hip       (23, 24, "lr_hip");
-    joint l_hip_should (23, 11, "l_hip_should");
-    joint r_hip_should (24, 12, "r_hip_should");
-    joint rl_should    (12, 11, "rl_should", true);
+    bone lr_hip       (23, 24, "lr_hip");
+    bone l_hip_should (23, 11, "l_hip_should");
+    bone r_hip_should (24, 12, "r_hip_should");
+    bone rl_should    (12, 11, "rl_should", true);
 
 
 
-    blaze_joints.push_back(r_should_eblow);
-    blaze_joints.push_back(r_elbow_wrist);
-    blaze_joints.push_back(r_wrist_thumb);
-    blaze_joints.push_back(r_wrist_pinky);
-    blaze_joints.push_back(r_wrist_index);
+    blaze_bones.push_back(r_should_eblow);
+    blaze_bones.push_back(r_elbow_wrist);
+    blaze_bones.push_back(r_wrist_thumb);
+    blaze_bones.push_back(r_wrist_pinky);
+    blaze_bones.push_back(r_wrist_index);
     //blaze_joints.push_back(r_index_pinky);
 
-    blaze_joints.push_back(l_should_elbow);
-    blaze_joints.push_back(l_elbow_wrist);
-    blaze_joints.push_back(l_wrist_thumb);
-    blaze_joints.push_back(l_wrist_pinky);
-    blaze_joints.push_back(l_wrist_index);
+    blaze_bones.push_back(l_should_elbow);
+    blaze_bones.push_back(l_elbow_wrist);
+    blaze_bones.push_back(l_wrist_thumb);
+    blaze_bones.push_back(l_wrist_pinky);
+    blaze_bones.push_back(l_wrist_index);
     //blaze_joints.push_back(l_index_pinky);
     
-    blaze_joints.push_back(r_hip_knee);
-    blaze_joints.push_back(r_knee_ankle);
-    blaze_joints.push_back(r_ankle_heel);
-    blaze_joints.push_back(r_ankle_foot);
+    blaze_bones.push_back(r_hip_knee);
+    blaze_bones.push_back(r_knee_ankle);
+    blaze_bones.push_back(r_ankle_heel);
+    blaze_bones.push_back(r_ankle_foot);
     //blaze_joints.push_back(r_heel_foot);
 
-    blaze_joints.push_back(l_hip_knee);
-    blaze_joints.push_back(l_knee_ankle);
-    blaze_joints.push_back(l_ankle_heel);
-    blaze_joints.push_back(l_ankle_foot);
+    blaze_bones.push_back(l_hip_knee);
+    blaze_bones.push_back(l_knee_ankle);
+    blaze_bones.push_back(l_ankle_heel);
+    blaze_bones.push_back(l_ankle_foot);
     //blaze_joints.push_back(l_heel_foot);
 
-    blaze_joints.push_back(lr_hip);
-    blaze_joints.push_back(l_hip_should);
-    blaze_joints.push_back(r_hip_should);
-    blaze_joints.push_back(rl_should);
+    blaze_bones.push_back(lr_hip);
+    blaze_bones.push_back(l_hip_should);
+    blaze_bones.push_back(r_hip_should);
+    blaze_bones.push_back(rl_should);
 
     // now piece the model togther
-    bodymodel blaze_model (blaze_joints, BLAZE_BASE_JOINT);
+    bodymodel blaze_model (blaze_bones, BLAZE_BASE_BONE);
 
     return blaze_model;
 } 
@@ -920,10 +901,10 @@ bodymodel create_blaze_body_model () {
  * left/right shoulders and hip markers.
  * 
  * @param positions 
- * @returnstd::vector<joint> 
+ * @returnstd::vector<bone> 
  */
 bodymodel create_adjusted_blaze_model() {
-    int ADJUSTED_BASE_JOINT = 0;
+    int ADJUSTED_BASE_BONE = 0;
 
     const int HIP = 0;
     const int SPINE = 1;
@@ -944,27 +925,27 @@ bodymodel create_adjusted_blaze_model() {
 
 
     // base positions
-    joint hip_spine (HIP, SPINE, "hip_spine");
+    bone hip_spine (HIP, SPINE, "hip_spine");
 
     // right arm
-    joint r_spine_should (SPINE, RIGHT_SHOULDER, "r_spine_should");
-    joint r_should_elbow (RIGHT_SHOULDER, RIGHT_ELBOW, "r_should_elbow");
-    joint r_elbow_hand (RIGHT_ELBOW, RIGHT_HAND, "r_elbow_hand");
+    bone r_spine_should (SPINE, RIGHT_SHOULDER, "r_spine_should");
+    bone r_should_elbow (RIGHT_SHOULDER, RIGHT_ELBOW, "r_should_elbow");
+    bone r_elbow_hand (RIGHT_ELBOW, RIGHT_HAND, "r_elbow_hand");
 
     // left arm 
-    joint l_spine_should (SPINE, LEFT_SHOULDER, "l_spine_should");
-    joint l_should_elbow (LEFT_SHOULDER, LEFT_ELBOW, "l_should_elbow");
-    joint l_elbow_hand (LEFT_ELBOW, LEFT_HAND, "l_elbow_hand");
+    bone l_spine_should (SPINE, LEFT_SHOULDER, "l_spine_should");
+    bone l_should_elbow (LEFT_SHOULDER, LEFT_ELBOW, "l_should_elbow");
+    bone l_elbow_hand (LEFT_ELBOW, LEFT_HAND, "l_elbow_hand");
 
     // right leg
-    joint r_hip_knee (HIP, RIGHT_KNEE, "r_hip_knee");
-    joint r_knee_foot (RIGHT_KNEE, RIGHT_FOOT, "r_knee_foot");
+    bone r_hip_knee (HIP, RIGHT_KNEE, "r_hip_knee");
+    bone r_knee_foot (RIGHT_KNEE, RIGHT_FOOT, "r_knee_foot");
 
     // left leg
-    joint l_hip_knee (HIP, LEFT_KNEE, "l_hip_knee");
-    joint l_knee_foot (LEFT_KNEE, LEFT_FOOT, "l_knee_foot");
+    bone l_hip_knee (HIP, LEFT_KNEE, "l_hip_knee");
+    bone l_knee_foot (LEFT_KNEE, LEFT_FOOT, "l_knee_foot");
 
-    std::vector<joint> adjusted_joints = {
+    std::vector<bone> adjusted_bones = {
         hip_spine, 
         r_spine_should, r_should_elbow, r_elbow_hand,
         l_spine_should, l_should_elbow, l_elbow_hand,
@@ -973,7 +954,7 @@ bodymodel create_adjusted_blaze_model() {
     };
 
     // now piece the model togther
-    return bodymodel(adjusted_joints, ADJUSTED_BASE_JOINT);
+    return bodymodel(adjusted_bones, ADJUSTED_BASE_BONE);
 } 
 
 /**
@@ -1031,89 +1012,89 @@ bodymodel set_adjust_points_from_blaze (bodymodel adjusted_model, bodymodel blaz
 bodymodel create_local_dancing_vampire_model() {
 
     //torso
-    joint hips_spine(HIPS, SPINE, "hips_spine");
-    joint spine_spine_1(SPINE, SPINE_1, "spine_spine_1");
-    joint spine_1_spine_2(SPINE_1, SPINE_2, "spine_1_spine_2");
+    bone hips_spine(HIPS, SPINE, "hips_spine");
+    bone spine_spine_1(SPINE, SPINE_1, "spine_spine_1");
+    bone spine_1_spine_2(SPINE_1, SPINE_2, "spine_1_spine_2");
 
 
     // left arm
-    joint spine_2_left_shoulder(SPINE_2, LEFT_SHOULDER, "spine_2_left_shoulder");
-    joint left_shoulder_left_arm(LEFT_SHOULDER, LEFT_ARM, "left_shoulder_left_arm");
-    joint left_arm_left_forearm(LEFT_ARM, LEFT_FOREARM, "left_arm_left_forearm");
-    joint left_forearm_left_hand(LEFT_FOREARM, LEFT_HAND, "left_forearm_left_hand");
+    bone spine_2_left_shoulder(SPINE_2, LEFT_SHOULDER, "spine_2_left_shoulder");
+    bone left_shoulder_left_arm(LEFT_SHOULDER, LEFT_ARM, "left_shoulder_left_arm");
+    bone left_arm_left_forearm(LEFT_ARM, LEFT_FOREARM, "left_arm_left_forearm");
+    bone left_forearm_left_hand(LEFT_FOREARM, LEFT_HAND, "left_forearm_left_hand");
 
     // left hand
-    joint left_hand_left_hand_thumb_1(LEFT_HAND, LEFT_HAND_THUMB_1, "left_hand_left_hand_thumb");
-    joint left_hand_pink_1_left_hand_thumb_2(LEFT_HAND_THUMB_1, LEFT_HAND_THUMB_2, "left_hand_thumb_1_left_hand_thumb_2");
-    joint left_hand_pink_2_left_hand_thumb_3(LEFT_HAND_THUMB_2, LEFT_HAND_THUMB_3, "left_hand_thumb_2_left_hand_thumb_3");
-    joint left_hand_pink_3_left_hand_thumb_4(LEFT_HAND_THUMB_3, LEFT_HAND_THUMB_4, "left_hand_thumb_3_left_hand_thumb_4");
+    bone left_hand_left_hand_thumb_1(LEFT_HAND, LEFT_HAND_THUMB_1, "left_hand_left_hand_thumb");
+    bone left_hand_pink_1_left_hand_thumb_2(LEFT_HAND_THUMB_1, LEFT_HAND_THUMB_2, "left_hand_thumb_1_left_hand_thumb_2");
+    bone left_hand_pink_2_left_hand_thumb_3(LEFT_HAND_THUMB_2, LEFT_HAND_THUMB_3, "left_hand_thumb_2_left_hand_thumb_3");
+    bone left_hand_pink_3_left_hand_thumb_4(LEFT_HAND_THUMB_3, LEFT_HAND_THUMB_4, "left_hand_thumb_3_left_hand_thumb_4");
 
-    joint left_hand_left_hand_index_1(LEFT_HAND, LEFT_HAND_INDEX_1, "left_hand_left_hand_index");
-    joint left_hand_pink_1_left_hand_index_2(LEFT_HAND_INDEX_1, LEFT_HAND_INDEX_2, "left_hand_index_1_left_hand_index_2");
-    joint left_hand_pink_2_left_hand_index_3(LEFT_HAND_INDEX_2, LEFT_HAND_INDEX_3, "left_hand_index_2_left_hand_index_3");
-    joint left_hand_pink_3_left_hand_index_4(LEFT_HAND_INDEX_3, LEFT_HAND_INDEX_4, "left_hand_index_3_left_hand_index_4");
+    bone left_hand_left_hand_index_1(LEFT_HAND, LEFT_HAND_INDEX_1, "left_hand_left_hand_index");
+    bone left_hand_pink_1_left_hand_index_2(LEFT_HAND_INDEX_1, LEFT_HAND_INDEX_2, "left_hand_index_1_left_hand_index_2");
+    bone left_hand_pink_2_left_hand_index_3(LEFT_HAND_INDEX_2, LEFT_HAND_INDEX_3, "left_hand_index_2_left_hand_index_3");
+    bone left_hand_pink_3_left_hand_index_4(LEFT_HAND_INDEX_3, LEFT_HAND_INDEX_4, "left_hand_index_3_left_hand_index_4");
 
-    joint left_hand_left_hand_middle_1(LEFT_HAND, LEFT_HAND_MIDDLE_1, "left_hand_left_hand_middle");
-    joint left_hand_pink_1_left_hand_middle_2(LEFT_HAND_MIDDLE_1, LEFT_HAND_MIDDLE_2, "left_hand_middle_1_left_hand_middle_2");
-    joint left_hand_pink_2_left_hand_middle_3(LEFT_HAND_MIDDLE_2, LEFT_HAND_MIDDLE_3, "left_hand_middle_2_left_hand_middle_3");
-    joint left_hand_pink_3_left_hand_middle_4(LEFT_HAND_MIDDLE_3, LEFT_HAND_MIDDLE_4, "left_hand_middle_3_left_hand_middle_4");
+    bone left_hand_left_hand_middle_1(LEFT_HAND, LEFT_HAND_MIDDLE_1, "left_hand_left_hand_middle");
+    bone left_hand_pink_1_left_hand_middle_2(LEFT_HAND_MIDDLE_1, LEFT_HAND_MIDDLE_2, "left_hand_middle_1_left_hand_middle_2");
+    bone left_hand_pink_2_left_hand_middle_3(LEFT_HAND_MIDDLE_2, LEFT_HAND_MIDDLE_3, "left_hand_middle_2_left_hand_middle_3");
+    bone left_hand_pink_3_left_hand_middle_4(LEFT_HAND_MIDDLE_3, LEFT_HAND_MIDDLE_4, "left_hand_middle_3_left_hand_middle_4");
 
-    joint left_hand_left_hand_ring_1(LEFT_HAND, LEFT_HAND_RING_1, "left_hand_left_hand_ring");
-    joint left_hand_pink_1_left_hand_ring_2(LEFT_HAND_RING_1, LEFT_HAND_RING_2, "left_hand_ring_1_left_hand_ring_2");
-    joint left_hand_pink_2_left_hand_ring_3(LEFT_HAND_RING_2, LEFT_HAND_RING_3, "left_hand_ring_2_left_hand_ring_3");
-    joint left_hand_pink_3_left_hand_ring_4(LEFT_HAND_RING_3, LEFT_HAND_RING_4, "left_hand_ring_3_left_hand_ring_4");
+    bone left_hand_left_hand_ring_1(LEFT_HAND, LEFT_HAND_RING_1, "left_hand_left_hand_ring");
+    bone left_hand_pink_1_left_hand_ring_2(LEFT_HAND_RING_1, LEFT_HAND_RING_2, "left_hand_ring_1_left_hand_ring_2");
+    bone left_hand_pink_2_left_hand_ring_3(LEFT_HAND_RING_2, LEFT_HAND_RING_3, "left_hand_ring_2_left_hand_ring_3");
+    bone left_hand_pink_3_left_hand_ring_4(LEFT_HAND_RING_3, LEFT_HAND_RING_4, "left_hand_ring_3_left_hand_ring_4");
 
-    joint left_hand_left_hand_pinky_1(LEFT_HAND, LEFT_HAND_PINKY_1, "left_hand_left_hand_pinky");
-    joint left_hand_pink_1_left_hand_pinky_2(LEFT_HAND_PINKY_1, LEFT_HAND_PINKY_2, "left_hand_pinky_1_left_hand_pinky_2");
-    joint left_hand_pink_2_left_hand_pinky_3(LEFT_HAND_PINKY_2, LEFT_HAND_PINKY_3, "left_hand_pinky_2_left_hand_pinky_3");
-    joint left_hand_pink_3_left_hand_pinky_4(LEFT_HAND_PINKY_3, LEFT_HAND_PINKY_4, "left_hand_pinky_3_left_hand_pinky_4");
+    bone left_hand_left_hand_pinky_1(LEFT_HAND, LEFT_HAND_PINKY_1, "left_hand_left_hand_pinky");
+    bone left_hand_pink_1_left_hand_pinky_2(LEFT_HAND_PINKY_1, LEFT_HAND_PINKY_2, "left_hand_pinky_1_left_hand_pinky_2");
+    bone left_hand_pink_2_left_hand_pinky_3(LEFT_HAND_PINKY_2, LEFT_HAND_PINKY_3, "left_hand_pinky_2_left_hand_pinky_3");
+    bone left_hand_pink_3_left_hand_pinky_4(LEFT_HAND_PINKY_3, LEFT_HAND_PINKY_4, "left_hand_pinky_3_left_hand_pinky_4");
 
 
     // right arm
-    joint spine_2_right_shoulder(SPINE_2, RIGHT_SHOULDER, "spine_2_right_shoulder");
-    joint right_shoulder_right_arm(RIGHT_SHOULDER, RIGHT_ARM, "right_shoulder_right_arm");
-    joint right_arm_right_forearm(RIGHT_ARM, RIGHT_FOREARM, "right_arm_right_forearm");
-    joint right_forearm_right_hand(RIGHT_FOREARM, RIGHT_HAND, "right_forearm_right_hand");
+    bone spine_2_right_shoulder(SPINE_2, RIGHT_SHOULDER, "spine_2_right_shoulder");
+    bone right_shoulder_right_arm(RIGHT_SHOULDER, RIGHT_ARM, "right_shoulder_right_arm");
+    bone right_arm_right_forearm(RIGHT_ARM, RIGHT_FOREARM, "right_arm_right_forearm");
+    bone right_forearm_right_hand(RIGHT_FOREARM, RIGHT_HAND, "right_forearm_right_hand");
 
     // right hand
-    joint right_hand_right_hand_thumb_1(RIGHT_HAND, RIGHT_HAND_THUMB_1, "right_hand_right_hand_thumb");
-    joint right_hand_pink_1_right_hand_thumb_2(RIGHT_HAND_THUMB_1, RIGHT_HAND_THUMB_2, "right_hand_thumb_1_right_hand_thumb_2");
-    joint right_hand_pink_2_right_hand_thumb_3(RIGHT_HAND_THUMB_2, RIGHT_HAND_THUMB_3, "right_hand_thumb_2_right_hand_thumb_3");
-    joint right_hand_pink_3_right_hand_thumb_4(RIGHT_HAND_THUMB_3, RIGHT_HAND_THUMB_4, "right_hand_thumb_3_right_hand_thumb_4");
+    bone right_hand_right_hand_thumb_1(RIGHT_HAND, RIGHT_HAND_THUMB_1, "right_hand_right_hand_thumb");
+    bone right_hand_pink_1_right_hand_thumb_2(RIGHT_HAND_THUMB_1, RIGHT_HAND_THUMB_2, "right_hand_thumb_1_right_hand_thumb_2");
+    bone right_hand_pink_2_right_hand_thumb_3(RIGHT_HAND_THUMB_2, RIGHT_HAND_THUMB_3, "right_hand_thumb_2_right_hand_thumb_3");
+    bone right_hand_pink_3_right_hand_thumb_4(RIGHT_HAND_THUMB_3, RIGHT_HAND_THUMB_4, "right_hand_thumb_3_right_hand_thumb_4");
 
-    joint right_hand_right_hand_index_1(RIGHT_HAND, RIGHT_HAND_INDEX_1, "right_hand_right_hand_index");
-    joint right_hand_pink_1_right_hand_index_2(RIGHT_HAND_INDEX_1, RIGHT_HAND_INDEX_2, "right_hand_index_1_right_hand_index_2");
-    joint right_hand_pink_2_right_hand_index_3(RIGHT_HAND_INDEX_2, RIGHT_HAND_INDEX_3, "right_hand_index_2_right_hand_index_3");
-    joint right_hand_pink_3_right_hand_index_4(RIGHT_HAND_INDEX_3, RIGHT_HAND_INDEX_4, "right_hand_index_3_right_hand_index_4");
+    bone right_hand_right_hand_index_1(RIGHT_HAND, RIGHT_HAND_INDEX_1, "right_hand_right_hand_index");
+    bone right_hand_pink_1_right_hand_index_2(RIGHT_HAND_INDEX_1, RIGHT_HAND_INDEX_2, "right_hand_index_1_right_hand_index_2");
+    bone right_hand_pink_2_right_hand_index_3(RIGHT_HAND_INDEX_2, RIGHT_HAND_INDEX_3, "right_hand_index_2_right_hand_index_3");
+    bone right_hand_pink_3_right_hand_index_4(RIGHT_HAND_INDEX_3, RIGHT_HAND_INDEX_4, "right_hand_index_3_right_hand_index_4");
 
-    joint right_hand_right_hand_middle_1(RIGHT_HAND, RIGHT_HAND_MIDDLE_1, "right_hand_right_hand_middle");
-    joint right_hand_pink_1_right_hand_middle_2(RIGHT_HAND_MIDDLE_1, RIGHT_HAND_MIDDLE_2, "right_hand_middle_1_right_hand_middle_2");
-    joint right_hand_pink_2_right_hand_middle_3(RIGHT_HAND_MIDDLE_2, RIGHT_HAND_MIDDLE_3, "right_hand_middle_2_right_hand_middle_3");
-    joint right_hand_pink_3_right_hand_middle_4(RIGHT_HAND_MIDDLE_3, RIGHT_HAND_MIDDLE_4, "right_hand_middle_3_right_hand_middle_4");
+    bone right_hand_right_hand_middle_1(RIGHT_HAND, RIGHT_HAND_MIDDLE_1, "right_hand_right_hand_middle");
+    bone right_hand_pink_1_right_hand_middle_2(RIGHT_HAND_MIDDLE_1, RIGHT_HAND_MIDDLE_2, "right_hand_middle_1_right_hand_middle_2");
+    bone right_hand_pink_2_right_hand_middle_3(RIGHT_HAND_MIDDLE_2, RIGHT_HAND_MIDDLE_3, "right_hand_middle_2_right_hand_middle_3");
+    bone right_hand_pink_3_right_hand_middle_4(RIGHT_HAND_MIDDLE_3, RIGHT_HAND_MIDDLE_4, "right_hand_middle_3_right_hand_middle_4");
 
-    joint right_hand_right_hand_ring_1(RIGHT_HAND, RIGHT_HAND_RING_1, "right_hand_right_hand_ring");
-    joint right_hand_pink_1_right_hand_ring_2(RIGHT_HAND_RING_1, RIGHT_HAND_RING_2, "right_hand_ring_1_right_hand_ring_2");
-    joint right_hand_pink_2_right_hand_ring_3(RIGHT_HAND_RING_2, RIGHT_HAND_RING_3, "right_hand_ring_2_right_hand_ring_3");
-    joint right_hand_pink_3_right_hand_ring_4(RIGHT_HAND_RING_3, RIGHT_HAND_RING_4, "right_hand_ring_3_right_hand_ring_4");
+    bone right_hand_right_hand_ring_1(RIGHT_HAND, RIGHT_HAND_RING_1, "right_hand_right_hand_ring");
+    bone right_hand_pink_1_right_hand_ring_2(RIGHT_HAND_RING_1, RIGHT_HAND_RING_2, "right_hand_ring_1_right_hand_ring_2");
+    bone right_hand_pink_2_right_hand_ring_3(RIGHT_HAND_RING_2, RIGHT_HAND_RING_3, "right_hand_ring_2_right_hand_ring_3");
+    bone right_hand_pink_3_right_hand_ring_4(RIGHT_HAND_RING_3, RIGHT_HAND_RING_4, "right_hand_ring_3_right_hand_ring_4");
 
-    joint right_hand_right_hand_pinky_1(RIGHT_HAND, RIGHT_HAND_PINKY_1, "right_hand_right_hand_pinky");
-    joint right_hand_pink_1_right_hand_pinky_2(RIGHT_HAND_PINKY_1, RIGHT_HAND_PINKY_2, "right_hand_pinky_1_right_hand_pinky_2");
-    joint right_hand_pink_2_right_hand_pinky_3(RIGHT_HAND_PINKY_2, RIGHT_HAND_PINKY_3, "right_hand_pinky_2_right_hand_pinky_3");
-    joint right_hand_pink_3_right_hand_pinky_4(RIGHT_HAND_PINKY_3, RIGHT_HAND_PINKY_4, "right_hand_pinky_3_right_hand_pinky_4");
+    bone right_hand_right_hand_pinky_1(RIGHT_HAND, RIGHT_HAND_PINKY_1, "right_hand_right_hand_pinky");
+    bone right_hand_pink_1_right_hand_pinky_2(RIGHT_HAND_PINKY_1, RIGHT_HAND_PINKY_2, "right_hand_pinky_1_right_hand_pinky_2");
+    bone right_hand_pink_2_right_hand_pinky_3(RIGHT_HAND_PINKY_2, RIGHT_HAND_PINKY_3, "right_hand_pinky_2_right_hand_pinky_3");
+    bone right_hand_pink_3_right_hand_pinky_4(RIGHT_HAND_PINKY_3, RIGHT_HAND_PINKY_4, "right_hand_pinky_3_right_hand_pinky_4");
 
     // left leg
-    joint hips_left_up_leg(HIPS, LEFT_UP_LEG, "hips_left_up_leg");
-    joint left_up_leg_left_leg(LEFT_UP_LEG, LEFT_LEG, "left_up_leg_left_leg");
-    joint left_leg_left_toe_base(LEFT_LEG, LEFT_TOE_BASE, "left_leg_left_toe_base");
-    joint left_toe_base_left_toe_end(LEFT_TOE_BASE, LEFT_TOE_END, "left_toe_base_left_toe_end");
+    bone hips_left_up_leg(HIPS, LEFT_UP_LEG, "hips_left_up_leg");
+    bone left_up_leg_left_leg(LEFT_UP_LEG, LEFT_LEG, "left_up_leg_left_leg");
+    bone left_leg_left_toe_base(LEFT_LEG, LEFT_TOE_BASE, "left_leg_left_toe_base");
+    bone left_toe_base_left_toe_end(LEFT_TOE_BASE, LEFT_TOE_END, "left_toe_base_left_toe_end");
 
     // right leg
-    joint hips_right_up_leg(HIPS, RIGHT_UP_LEG, "hips_right_up_leg");
-    joint right_up_leg_right_leg(RIGHT_UP_LEG, RIGHT_LEG, "right_up_leg_right_leg");
-    joint right_leg_right_toe_base(RIGHT_LEG, RIGHT_TOE_BASE, "right_leg_right_toe_base");
-    joint right_toe_base_right_toe_end(RIGHT_TOE_BASE, RIGHT_TOE_END, "right_toe_base_right_toe_end");
+    bone hips_right_up_leg(HIPS, RIGHT_UP_LEG, "hips_right_up_leg");
+    bone right_up_leg_right_leg(RIGHT_UP_LEG, RIGHT_LEG, "right_up_leg_right_leg");
+    bone right_leg_right_toe_base(RIGHT_LEG, RIGHT_TOE_BASE, "right_leg_right_toe_base");
+    bone right_toe_base_right_toe_end(RIGHT_TOE_BASE, RIGHT_TOE_END, "right_toe_base_right_toe_end");
 
-    std::vector<joint> joints = {
+    std::vector<bone> bones = {
         hips_spine, spine_spine_1, spine_1_spine_2, spine_2_left_shoulder, left_shoulder_left_arm, 
         left_arm_left_forearm, left_forearm_left_hand, left_hand_left_hand_thumb_1, left_hand_pink_1_left_hand_thumb_2, 
         left_hand_pink_2_left_hand_thumb_3, left_hand_pink_3_left_hand_thumb_4, left_hand_left_hand_index_1, 
@@ -1134,13 +1115,13 @@ bodymodel create_local_dancing_vampire_model() {
         right_leg_right_toe_base, right_toe_base_right_toe_end
     };
 
-    return bodymodel(joints, HIPS);
+    return bodymodel(bones, HIPS);
 }
 
 
 
 
-void print_map(std::unordered_map<joint, position, JointHasher> m) {
+void print_map(std::unordered_map<bone, position, BoneHasher> m) {
     for (auto pair: m) {
         std::cout << "{(" << pair.first.parent_index << ", " << pair.first.child_index << "): " << pair.second.toString() << "}\n";
     }
@@ -1201,7 +1182,7 @@ std::vector<position> split_blaze_keypoints (std::string kp, bool reverse_y=fals
     return positions;
 }
 
-// blaze model does not need positions, it is just used to grab joint names
+// blaze model does not need positions, it is just used to grab bone names
 std::tuple<bodymodel, std::unordered_map<std::string, position>> apply_rotations_to_vamp_model(
     std::unordered_map<std::string, matrix> blaze_rotations, 
     bodymodel vamp, 
@@ -1212,42 +1193,41 @@ std::tuple<bodymodel, std::unordered_map<std::string, position>> apply_rotations
     auto new_vamp = vamp;
     std::unordered_map<std::string, position> translation_map;
 
-    // iterate thru blaze model to get rotation and vamp joint
-    auto first_joint = blaze.base_joints[0];
-    for (auto base_joint : blaze.base_joints) {
+    // iterate thru blaze model to get rotation and vamp bone
+    auto first_bone = blaze.base_bones[0];
+    for (auto base_bone : blaze.base_bones) {
         // get local rotations
-        auto current_rot = blaze_rotations[base_joint.name];
+        auto current_rot = blaze_rotations[base_bone.name];
         
         // get vamp pos index tuple
-        auto vamp_joint_indexs = blaze_vamp_mapping[base_joint.name];
-        for (auto joint_tuple : vamp_joint_indexs) {
-            std::vector<joint> vamp_bones = vamp.get_all_joints_between_parent_and_child(
-                std::get<0>(joint_tuple),
-                std::get<1>(joint_tuple)
+        auto vamp_bone_indexs = blaze_vamp_mapping[base_bone.name];
+        for (auto bone_tuple : vamp_bone_indexs) {
+            std::vector<bone> vamp_bones = vamp.get_all_bone_between_parent_and_child(
+                std::get<0>(bone_tuple),
+                std::get<1>(bone_tuple)
             );
-            // apply rotation for each  joint
-            for (joint vamp_bone : vamp_bones) {
-                // local_positions = vamp.rotate_single_joint_with_translation_map(vamp_bone, local_positions, current_rot, translation_map);
-                vamp.rotate_single_joint_with_translation_map(vamp_bone, current_rot, local_positions, translation_map);
+            // apply rotation for each bone
+            for (bone vamp_bone : vamp_bones) {
+                // local_positions = vamp.rotate_single_bone_with_translation_map(vamp_bone, local_positions, current_rot, translation_map);
+                vamp.rotate_single_bone_with_translation_map(vamp_bone, current_rot, local_positions, translation_map);
             }
         }
 
-
-        for (auto local_joint : blaze.joints_flow[base_joint]) {
+        for (auto local_bone : blaze.bones_flow[base_bone]) {
             // get local rotations
-            auto current_rot = blaze_rotations[local_joint.name];
+            auto current_rot = blaze_rotations[local_bone.name];
             
             // get vamp pos index tuple
-            auto vamp_joint_indexs = blaze_vamp_mapping[local_joint.name];
-            for (auto joint_tuple : vamp_joint_indexs) {
-                std::vector<joint> vamp_bones = vamp.get_all_joints_between_parent_and_child(
-                    std::get<0>(joint_tuple),
-                    std::get<1>(joint_tuple)
+            auto vamp_bone_indexs = blaze_vamp_mapping[local_bone.name];
+            for (auto bone_tuple : vamp_bone_indexs) {
+                std::vector<bone> vamp_bones = vamp.get_all_bone_between_parent_and_child(
+                    std::get<0>(bone_tuple),
+                    std::get<1>(bone_tuple)
                 );
-                // apply rotation for each joint
-                for (joint vamp_bone : vamp_bones) {
-                    // local_positions = vamp.rotate_single_joint_with_translation_map(vamp_bone, local_positions, current_rot, translation_map);
-                    vamp.rotate_single_joint_with_translation_map(vamp_bone, current_rot, local_positions, translation_map);
+                // apply rotation for each bone
+                for (bone vamp_bone : vamp_bones) {
+                    // local_positions = vamp.rotate_single_bone_with_translation_map(vamp_bone, local_positions, current_rot, translation_map);
+                    vamp.rotate_single_bone_with_translation_map(vamp_bone, current_rot, local_positions, translation_map);
                 }
             }
 
@@ -1259,21 +1239,21 @@ std::tuple<bodymodel, std::unordered_map<std::string, position>> apply_rotations
 
 std::unordered_map<std::string, matrix> get_vampire_blaze_rotations(bodymodel blaze, bodymodel vampire) {
     auto blaze_vamp_mapping = blaze_to_vampire_map();
-    std::unordered_map<std::string, matrix> joint_name_to_rotation;
+    std::unordered_map<std::string, matrix> bone_name_to_rotation;
 
-    // iterate thru blaze model to get rotation and vamp joint
-    for (auto base_joint : blaze.base_joints) {
+    // iterate thru blaze model to get rotation and vamp bone
+    for (auto base_bone : blaze.base_bones) {
         // get local blaze positions
 
-        position curr_parent = blaze.positions[base_joint.parent_index];
-        position curr_child = blaze.positions[base_joint.child_index];
+        position curr_parent = blaze.positions[base_bone.parent_index];
+        position curr_child = blaze.positions[base_bone.child_index];
         // now adjust with parent as origin
         position rel_curr_child = curr_child.subtract(curr_parent);
 
         // lets get vampire pos indicies
         // (grabs first position as only mutiple one is hands)
-        int vamp_parent_ind = std::get<0>(blaze_vamp_mapping[base_joint.name][0]);
-        int vamp_child_ind = std::get<1>(blaze_vamp_mapping[base_joint.name][0]);
+        int vamp_parent_ind = std::get<0>(blaze_vamp_mapping[base_bone.name][0]);
+        int vamp_child_ind = std::get<1>(blaze_vamp_mapping[base_bone.name][0]);
 
         position vamp_parent = vampire.positions[vamp_parent_ind];
         position vamp_child = vampire.positions[vamp_child_ind]; 
@@ -1282,18 +1262,18 @@ std::unordered_map<std::string, matrix> get_vampire_blaze_rotations(bodymodel bl
 
         matrix rotation = rodrigues(rel_vamp_child, rel_curr_child);
 
-        joint_name_to_rotation[base_joint.name] = rotation;
+        bone_name_to_rotation[base_bone.name] = rotation;
 
-        for (auto local_joint : blaze.joints_flow[base_joint]) {
-            position curr_parent = blaze.positions[local_joint.parent_index];
-            position curr_child = blaze.positions[local_joint.child_index];
+        for (auto local_bone : blaze.bones_flow[base_bone]) {
+            position curr_parent = blaze.positions[local_bone.parent_index];
+            position curr_child = blaze.positions[local_bone.child_index];
             // now adjust with parent as origin
             position rel_curr_child = curr_child.subtract(curr_parent);
 
             // lets get vampire pos indicies
         // (grabs first position as only mutiple one is hands)
-            int vamp_parent_ind = std::get<0>(blaze_vamp_mapping[local_joint.name][0]);
-            int vamp_child_ind = std::get<1>(blaze_vamp_mapping[local_joint.name][0]);
+            int vamp_parent_ind = std::get<0>(blaze_vamp_mapping[local_bone.name][0]);
+            int vamp_child_ind = std::get<1>(blaze_vamp_mapping[local_bone.name][0]);
 
 
             position vamp_parent = vampire.positions[vamp_parent_ind];
@@ -1303,11 +1283,11 @@ std::unordered_map<std::string, matrix> get_vampire_blaze_rotations(bodymodel bl
 
             matrix rotation = rodrigues(rel_vamp_child, rel_curr_child);
 
-            joint_name_to_rotation[local_joint.name] = rotation;
+            bone_name_to_rotation[local_bone.name] = rotation;
         }
     }
 
-    return joint_name_to_rotation;
+    return bone_name_to_rotation;
 }
 
 

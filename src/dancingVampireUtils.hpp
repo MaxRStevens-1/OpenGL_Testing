@@ -3,7 +3,7 @@
 
 #include <iostream>
 #include <unordered_map>
-#include <tuple> // for tuple
+#include <tuple>
 
 const unsigned int HIPS = 0;
 const unsigned int SPINE = 1;
@@ -165,7 +165,7 @@ std::unordered_map<std::string, unsigned int> name_to_index() {
     return reverse;
 }
 
-// now I have a map of blaze bones, to vamp model joint tuples
+// now I have a map of blaze bones, to vamp model bone tuples
 std::unordered_map<std::string, std::vector<std::tuple<int, int>>> blaze_to_vampire_map() {
     std::unordered_map<std::string, std::vector<std::tuple<int, int>>> hash;
     hash["hip_spine"] = {std::make_tuple(HIPS, SPINE_2)};

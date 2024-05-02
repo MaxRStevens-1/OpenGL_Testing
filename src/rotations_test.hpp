@@ -1,13 +1,13 @@
 #ifndef ROTATIONS_TEST_HPP
 #define ROTATIONS_TEST_HPP
 
-#include "joint_utils.h"
+#include "skeleton_utils.h"
 
 bodymodel construct_test_model() {
     // im doing a 4, 3 connection point model test
-    joint a_b(0, 1, "a_b");
-    joint b_c(1, 2, "b_c");
-    joint c_d(2, 3, "c_d");
+    bone a_b(0, 1, "a_b");
+    bone b_c(1, 2, "b_c");
+    bone c_d(2, 3, "c_d");
     bodymodel test({a_b, b_c, c_d}, 0);
 
     // now lets set base positions
@@ -47,7 +47,7 @@ bodymodel rotate_test_with_set_rotation(bodymodel test) {
         std::cout << "MATRIX: " << i << "\n" << curr_matrix.to_string() << std::endl;
         curr_matrix = curr_matrix.dot(y90);
         
-        std::cout << "JOINT: " << i << " " << new_model.toString() << std::endl;
+        std::cout << "BONE: " << i << " " << new_model.toString() << std::endl;
     }
 
     return new_model;
@@ -82,7 +82,7 @@ bodymodel rotate_test_with_set_rotation_45(bodymodel test) {
         std::cout << "MATRIX: " << i << "\n" << curr_matrix.to_string() << std::endl;
         curr_matrix = curr_matrix.dot(y45);
         
-        std::cout << "JOINT: " << i << " " << new_model.toString() << std::endl;
+        std::cout << "BONE: " << i << " " << new_model.toString() << std::endl;
     }
 
     return new_model;

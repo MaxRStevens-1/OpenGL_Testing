@@ -30,7 +30,7 @@
 #include "Animation.hpp"
 #include "filesystem.h"
 #include "Animator.hpp"
-#include "joints_loader_helper.hpp"
+#include "skeleton_loader_helper.hpp"
 #include "rotations_test.hpp"
 #include "dancingVampireUtils.hpp"
 #include "AssimpGLMHelpers.h"
@@ -241,7 +241,7 @@ int main()
     auto [new_current_model, translation_map] = apply_rotations_to_vamp_model(name_rotation_list[0], current_model, blaze_model);
     current_model = new_current_model;
     std::cout << "_____________" << std::endl;
-    for (joint bj : dancing_vampire.base_joints) {
+    for (bone bj : dancing_vampire.base_bones) {
         position new_pos;
         if (translation_map.find(bj.name) != translation_map.end()) 
             new_pos = translation_map[bj.name].add(dancing_vampire.positions[bj.child_index]);
@@ -250,7 +250,7 @@ int main()
 
         std::cout << "joint: " << bj.name << " pos: " << dancing_vampire.positions[bj.child_index].toString() 
             << ", new pos: "  << new_pos.toString() << std::endl;
-        for (joint cj : dancing_vampire.joints_flow[bj]) {
+        for (bone cj : dancing_vampire.bones_flow[bj]) {
         position new_pos;
         if (translation_map.find(cj.name) != translation_map.end()) 
             new_pos = translation_map[cj.name].add(dancing_vampire.positions[cj.child_index]);

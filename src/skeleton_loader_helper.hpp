@@ -1,5 +1,5 @@
-#ifndef JOINTS_LOADER_HELPER_HPP
-#define JOINTS_LOADER_HELPER_HPP
+#ifndef SKELETON_LOADER_HELPER_HPP
+#define SKELETON_LOADER_HELPER_HPP
 
 #include <iostream>
 #include <vector>
@@ -10,7 +10,7 @@
 #include <regex>
 #include <sstream>
 
-#include "joint_utils.h"
+#include "skeleton_utils.h"
 
 const std::string JOINT_FILEPATH = "./joints_output/";
 
@@ -74,51 +74,6 @@ std::string remove_invalid_char_in_floats(const std::string& input) {
         is_valid_float);
     return result;
 }
-
-
-std::vector<float> load_joints_single_line(std::string filename) {
-    std::ifstream file;
-    file.open(JOINT_FILEPATH + filename);
-    std::string file_string;
-    if (!file.is_open()) {
-        std::cout << "ERROR: FAILED TO OPEN FILE" << std::endl;
-        return {};
-    }
-    std::getline(file, file_string);    
-    // now find location of second :
-    int colon_pos = nthOccurrence(file_string, ":", 2);
-    // removes frame #
-    std::string preparsed_file = file_string.substr(colon_pos);
-    // makes string a just numbers seperated by ,
-    std::string parsed_line = remove_invalid_chars(preparsed_file);
-    // parsed_line = remove_invalid_char_in_floats(parsed_line);
-    std::regex reg("\\s+");
-    std::sregex_token_iterator iter(parsed_line.begin(), parsed_line.end(), reg, -1);
-    std::sregex_token_iterator end;
-    std::vector<std::string> tokenized_pos(iter, end);
-    
-
-
-    std::vector<float> positions;
-    // need to flip y values
-    unsigned int index = 0;
-    for (std::string token : tokenized_pos) {
-        std::string parsed_token = remove_invalid_char_in_floats(token);
-        if (isFloat(parsed_token)) {
-            if (index % 3 == 1) {
-                positions.push_back(std::stof(parsed_token)*-1);
-                std::cout << "changing sign from " << std::stof(parsed_token) << " to " << std::stof(parsed_token)*-1 << std::endl;
-            }
-            else
-                positions.push_back(std::stof(parsed_token));
-            index++;
-        } 
-    }
-
-    file.close();
-    return positions;
-}
-
 
 
 std::unordered_map<std::string, matrix> matrices_from_line(std::string line) {
@@ -197,9 +152,9 @@ std::tuple<bodymodel, std::vector<std::unordered_map<std::string, matrix>>> load
     std::vector<position> positions = split_blaze_keypoints(file_string, false);
     bodymodel model = create_adjusted_blaze_model();
 
-    for (joint j : model.base_joints) {
+    for (bone j : model.base_bones) {
         std::cout << j.name << std::endl;
-        for (joint nj : model.joints_flow[j]) {
+        for (bone nj : model.bones_flow[j]) {
             std::cout << nj.name << std::endl;
         }
         std::cout << "__________________" << std::endl;
@@ -232,9 +187,9 @@ std::tuple<bodymodel, std::vector<std::unordered_map<std::string, matrix>>> load
     std::vector<position> positions = split_blaze_keypoints(file_string, false);
     bodymodel model = create_local_dancing_vampire_model();
 
-    for (joint j : model.base_joints) {
+    for (bone j : model.base_bones) {
         std::cout << j.name << std::endl;
-        for (joint nj : model.joints_flow[j]) {
+        for (bone nj : model.bones_flow[j]) {
             std::cout << nj.name << std::endl;
         }
         std::cout << "__________________" << std::endl;
@@ -306,51 +261,6 @@ std::string replace_all(std::string str, const std::string& from, const std::str
         start_pos += to.length(); // Handles case where 'to' is a substring of 'from'
     }
     return str;
-}
-
-std::vector<std::vector<float>> load_joints_all_lines_flat(std::string filename) {
-    std::ifstream file;
-    file.open(JOINT_FILEPATH + filename);
-    std::string file_string;
-    if (!file.is_open()) {
-        std::cout << "ERROR: FAILED TO OPEN FILE" << std::endl;
-        return {};
-    }
-    std::vector<std::vector<float>> all_positions;
-
-    while (std::getline(file, file_string)) {
-        // now find location of second :
-        int bracket_pos = nthOccurrence(file_string, "[", 1);
-        // removes frame #
-        std::string preparsed_file = file_string.substr(bracket_pos);
-        std::cout << "file is: " << preparsed_file << std::endl;
-
-        // makes string a just numbers seperated by ,
-        std::string parsed_line = remove_invalid_chars(preparsed_file);
-        std::regex reg("\\s+");
-        std::sregex_token_iterator iter(parsed_line.begin(), parsed_line.end(), reg, -1);
-        std::sregex_token_iterator end;
-        std::vector<std::string> tokenized_pos(iter, end);
-        std::vector<float> positions;
-        unsigned int index = 0;
-        for (std::string token : tokenized_pos) {
-            std::string parsed_token = remove_invalid_char_in_floats(token);
-            if (isFloat(parsed_token)) {
-                if (index % 3 == 1) {
-                    positions.push_back(std::stof(parsed_token)*-1);
-                } else
-                    positions.push_back(std::stof(parsed_token));
-                index++;
-            }
-        }
-        std::cout << "positions size is " << positions.size() << std::endl;
-        all_positions.push_back(positions);
-
-    }
-    // tokenized_pos.
-    file.close();
-
-    return all_positions;
 }
 
 #endif
