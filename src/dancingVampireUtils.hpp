@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <tuple>
 
+// torso
 const unsigned int HIPS = 0;
 const unsigned int SPINE = 1;
 const unsigned int LEFT_UP_LEG = 2;
@@ -85,6 +86,10 @@ const unsigned int RIGHT_LEG = 58;
 const unsigned int RIGHT_FOOT = 59;
 const unsigned int RIGHT_TOE_BASE = 60;
 const unsigned int RIGHT_TOE_END = 61;
+
+// head and neck
+const unsigned int NECK = 62;
+const unsigned int HEAD = 63;
 
 
 std::unordered_map<unsigned int, std::string> hashtable_from_const() {
@@ -198,6 +203,7 @@ std::unordered_map<std::string, std::vector<std::tuple<int, int>>> blaze_to_vamp
 
     hash["r_hip_knee"] = {std::make_tuple(HIPS, LEFT_UP_LEG)};
     hash["r_knee_foot"] = {std::make_tuple(LEFT_UP_LEG, LEFT_LEG)};
+    hash["spine_head"] = {std::make_tuple(SPINE_2, HEAD)};
 
     return hash;
 }

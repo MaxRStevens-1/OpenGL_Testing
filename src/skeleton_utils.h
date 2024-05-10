@@ -853,8 +853,7 @@ bodymodel create_blaze_body_model () {
     bone lr_hip       (23, 24, "lr_hip");
     bone l_hip_should (23, 11, "l_hip_should");
     bone r_hip_should (24, 12, "r_hip_should");
-    bone rl_should    (12, 11, "rl_should", true);
-
+    bone rl_should    (12, 11, "rl_should", true);    
 
 
     blaze_bones.push_back(r_should_eblow);
@@ -922,6 +921,7 @@ bodymodel create_adjusted_blaze_model() {
 
     const int LEFT_KNEE = 10;
     const int LEFT_FOOT = 11;
+    const int HEAD = 12;
 
 
     // base positions
@@ -944,6 +944,9 @@ bodymodel create_adjusted_blaze_model() {
     // left leg
     bone l_hip_knee (HIP, LEFT_KNEE, "l_hip_knee");
     bone l_knee_foot (LEFT_KNEE, LEFT_FOOT, "l_knee_foot");
+
+    // head
+    bone spine_head (SPINE, HEAD, "spine_head");
 
     std::vector<bone> adjusted_bones = {
         hip_spine, 
@@ -1093,6 +1096,10 @@ bodymodel create_local_dancing_vampire_model() {
     bone right_up_leg_right_leg(RIGHT_UP_LEG, RIGHT_LEG, "right_up_leg_right_leg");
     bone right_leg_right_toe_base(RIGHT_LEG, RIGHT_TOE_BASE, "right_leg_right_toe_base");
     bone right_toe_base_right_toe_end(RIGHT_TOE_BASE, RIGHT_TOE_END, "right_toe_base_right_toe_end");
+
+    // HEAD AND NECK
+    bone spine_2_neck(SPINE_2, NECK, "spine_2_neck");
+    bone neck_head(NECK, HEAD, "neck_head");
 
     std::vector<bone> bones = {
         hips_spine, spine_spine_1, spine_1_spine_2, spine_2_left_shoulder, left_shoulder_left_arm, 
