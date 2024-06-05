@@ -52,7 +52,7 @@ glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
 
 auto joint_to_index = name_to_index();
 auto index_to_joint = hashtable_from_const();
-std::vector<position> vamp_pos(62);
+std::vector<position> vamp_pos(64);
 
 void processInput(GLFWwindow *window, Shader shader) {
 
@@ -123,7 +123,6 @@ void dump_vampire_into_file(bodymodel vamp) {
     std::ofstream vamp_dump_file ("vamp_dump.txt");
     std::string vamp_line = "[";
     for (int i = 0; i < vamp.positions.size(); i++) {
-    // for (position pos : adjusted_base_model.positions) {
         position pos = vamp.positions[i];
         vamp_line += pos.toString();
         if (i != vamp.positions.size() - 1)
@@ -132,6 +131,8 @@ void dump_vampire_into_file(bodymodel vamp) {
     vamp_line += "]";
     vamp_dump_file << vamp_line << std::endl;
     vamp_dump_file.close();
+    std::cout << "POSITONS SIZE:";
+    std::cout << split_blaze_keypoints(vamp_line, false).size() << std::endl;
     std::cout << "POSITIONS DUMP: " << std::endl;
     std::cout << vamp_line << std::endl;
 } 
@@ -149,7 +150,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
 
-    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Learning OpenGL", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Skeleton Animation \\0/", NULL, NULL);
     if (window == NULL) {
         std::cout << "Failed to create GLFW Window" << std::endl;
         return -1;
@@ -161,7 +162,6 @@ int main()
     }
 
     glEnable(GL_DEPTH_TEST);
-    // glDepthFunc(GL_LESS);  
 
     glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
 
@@ -176,16 +176,8 @@ int main()
     Shader lightingShader("point_shader");
     lightingShader.use();
 
-    // now I have the vertices of blazepose model
-    // std::vector<std::vector<float>> positions = load_joints_all_lines("bow.txt");
-    // auto [base_model, name_rotation_list] = load_blaze_model_from_file("ymca_4_adjusted_matrix.txt");
-    // bodymodel current_model = base_model;
-    // std::vector<std::vector<float>> positions = base_model.vectorify_positions_in_order();
-    // // flatten vertices seperate by time to single list for easy retrieval
-    // std::vector<float> flat_positions = flatten(positions);
-
-
-    auto [base_model, name_rotation_list] = load_vamp_model_from_file("vamp_ymca_blaze_vamp.txt");
+    auto [base_model, name_rotation_list] = load_vamp_model_from_file("ymca_blaze_vamp.txt");
+    // auto [base_model, name_rotation_list] = load_vamp_model_from_file("head_test_blaze_vamp.txt");
     bodymodel current_model = base_model;
     std::vector<std::vector<float>> positions = base_model.vectorify_positions_in_order();
     // flatten vertices seperate by time to single list for easy retrieval
@@ -206,19 +198,14 @@ int main()
     Animation danceAnimation(FileSystem::getPath(path),
         &local_model);
     Animator animator(&danceAnimation);
-    // animator.UpdateAnimation(5.0f);
 
     
     bodymodel dancing_vampire = create_local_dancing_vampire_model();
-    // auto baseBone = danceAnimation.FindBone("HIPS");
     std::cout << "_____" << std::endl;
     auto baseNode = danceAnimation.m_RootNode.children[0];
     getWorldPositionFromBones(baseNode, 0.01f);
 
     
-    // auto index_name_map = hashtable_from_const();
-    // auto info_map = danceAnimation.GetBoneIDMap();
-
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(FileSystem::getPath(path), aiProcess_Triangulate | aiProcess_FlipUVs);
 
@@ -231,14 +218,14 @@ int main()
     std::cout << dancing_vampire.toString() << std::endl;
     std::cout << "___________________" << std::endl;
     std::cout << current_model.toString() << std::endl;
-    // std::cout << danceAnimation.FindBone("Hips").
-    // flat_positions = flatten(dancing_vampire.vectorify_positions_in_order());
 
+    // TODO !! this grabs out position information to calc rotations for blazepoze model... keep
+    // around to send over utf8 pipe
     // dump_vampire_into_file(dancing_vampire);
     bodymodel blaze_model = create_adjusted_blaze_model();
 
-    // current_model = base_model.rotate_self_by_rotations(name_rotation_list[0], current_model);
     auto [new_current_model, translation_map] = apply_rotations_to_vamp_model(name_rotation_list[0], current_model, blaze_model);
+    std::cout << "APPLIED ROTATIONS TO MODEL" << std::endl;
     current_model = new_current_model;
     std::cout << "_____________" << std::endl;
     for (bone bj : dancing_vampire.base_bones) {
@@ -282,36 +269,12 @@ int main()
         exit(20);
     }
 
-    // // setting light structs
-    // // setting Spot Light
-    // lightingShader.setVec3("spotLight.position", 0,0,0);
-    // lightingShader.setFloat("spotLight.constant", 1.0f);
-    // lightingShader.setFloat("spotLight.linear", 0.09f);
-    // lightingShader.setFloat("spotLight.quadratic", 0.032f);
-    
-    // lightingShader.setVec3("spotLight.ambient", 0.1f, 0.1f, 0.1f);
-    // lightingShader.setVec3("spotLight.diffuse", 0.5f, 0.5f, 0.5f); 
-    // lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
-
-    // lightingShader.setFloat("spotLight.cutOff", glm::cos(glm::radians(12.5f)));
-    // lightingShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(17.5f)));
-
-
-    // // setting Directional Light
-    // lightingShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-    // lightingShader.setVec3("dirLight.ambient", 0.1f, 0.1f, 0.1f);
-    // lightingShader.setVec3("dirLight.diffuse", 0.3f, 0.3f, 0.3f); 
-    // lightingShader.setVec3("dirLight.specular", 1.0f, 1.0f, 1.0f);
-
-    // Assimp::Importer importer;
-
     unsigned int num_renders = 0;
     auto start = std::chrono::high_resolution_clock::now();
 
     float deltaTime = glfwGetTime();
     float lastFrame = glfwGetTime();
 
-    // glLineWidth(10.0f); my gl implementation doesn't support line widths :(
     glPointSize(10.0f);
     unsigned int starting_pos = 0;
     while (!glfwWindowShouldClose(window)) {
@@ -324,18 +287,10 @@ int main()
 
 
         processInput(window, lightingShader);
-        // animator.UpdateAnimation(deltaTime);
-
-
-        // glClearColor(0.4f, 0.3f, 0.2f, 0.0f);
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // setting up shader lighting uniforms
-
-        // lightingShader.setVec3("spotLight.position", camera.camera_pos);
-        // lightingShader.setVec3("viewPos", camera.camera_pos);
-        // lightingShader.setVec3("spotLight.direction", camera.camera_front);
         
         glm::mat4 projection = camera.getProjection();
         glm::mat4 view = camera.getView();
@@ -352,12 +307,10 @@ int main()
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	
         lightingShader.setMat4("model", model);
         // render the loaded model
-        // local_model.Draw(lightingShader);
-
         glBindVertexArray(VAO); 
         glDrawArrays(GL_POINTS, 0, flat_positions.size()/3);
         glDrawArrays(GL_LINES, 0, flat_positions.size()/3);
-        GLenum e = glGetError();
+        e = glGetError();
         if (e != GL_NO_ERROR) {
             fprintf(stderr, "OpenGL error in \"%s\": %d (%d)\n", "draw", e, e);
             exit(20);
@@ -371,25 +324,21 @@ int main()
             auto [new_current_model, new_translation_map] = apply_rotations_to_vamp_model(name_rotation_list[current_frame], base_model, blaze_model);
             current_model = new_current_model;
             translation_map = new_translation_map;
-            // current_model = base_model.rotate_self_by_rotations(name_rotation_list[current_frame], current_model);  
             flat_positions = flatten(current_model.vectorify_positions_in_order());
             glBindVertexArray(VAO);
 
             glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
             glBufferData(GL_ARRAY_BUFFER, sizeof(float) * flat_positions.size(), &flat_positions[0], GL_STATIC_DRAW);
 
             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-            glEnableVertexAttribArray(0);
 
+            glEnableVertexAttribArray(0);
             glBindVertexArray(0); 
+
+
             if (num_renders % ANIMATION_UPDATE_FRAMES == 0 && !should_stop)
                 current_frame = (current_frame + 1);
-            // starting_pos += positions[current_frame].size() / 3;
-            // current_frame = (current_frame + 1) % positions.size();
-            // if (current_frame == 0) {
-            //     starting_pos = 0;
-            // }
-            
         }
 
         glfwSwapBuffers(window);
@@ -403,8 +352,6 @@ int main()
             std::cout << "Has taken " << duration.count() << " mili seconds for 60 frames..." << std::endl;
             start = std::chrono::high_resolution_clock::now();
         }
-
-
     }
 
     glfwTerminate();

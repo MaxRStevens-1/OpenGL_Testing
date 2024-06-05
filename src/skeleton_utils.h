@@ -749,7 +749,7 @@ struct bodymodel {
                 return j;
             }
         }
-        throw std::invalid_argument("Failed to find input index as a parent...");
+        throw std::invalid_argument("get_first_parent_bone_instance: Failed to find input index as a parent...");
     }
 
     bone get_first_bone_that_has_child_in_flow(int parent, int child) {
@@ -767,7 +767,7 @@ struct bodymodel {
                     return j;
             }
         }
-        throw std::invalid_argument("Failed to find input index as a parent...");
+        throw std::invalid_argument("get_first_bone_that_has_child_in_flow: Failed to find input index as a parent...");
     }
 
     // gets all bones between bone parent and child in bone heirachy
@@ -798,7 +798,7 @@ struct bodymodel {
             if (has_child_in_path) 
                 return inbetween_bones;
         }
-        throw std::invalid_argument("Failed to find proper input index as a parent...");
+        throw std::invalid_argument("get_all_bone_between_parent_and_child: Failed to find proper input index as a parent...");
 
     }
 };
@@ -953,7 +953,8 @@ bodymodel create_adjusted_blaze_model() {
         r_spine_should, r_should_elbow, r_elbow_hand,
         l_spine_should, l_should_elbow, l_elbow_hand,
         r_hip_knee, r_knee_foot,
-        l_hip_knee, l_knee_foot
+        l_hip_knee, l_knee_foot,
+        spine_head
     };
 
     // now piece the model togther
@@ -1000,7 +1001,9 @@ bodymodel set_adjust_points_from_blaze (bodymodel adjusted_model, bodymodel blaz
         blaze_positions[25],     // right knee
         blaze_positions[27],     // right foot
         blaze_positions[26],     // left knee
-        blaze_positions[28]      // left foot
+        blaze_positions[28],     // left foot
+        blaze_positions[0]       // nose (standin for head)
+
     };
     local_adjusted_model.set_positions(adjusted_positions);
 
@@ -1119,7 +1122,8 @@ bodymodel create_local_dancing_vampire_model() {
         right_hand_pink_3_right_hand_ring_4, right_hand_right_hand_pinky_1, right_hand_pink_1_right_hand_pinky_2, 
         right_hand_pink_2_right_hand_pinky_3, right_hand_pink_3_right_hand_pinky_4, hips_left_up_leg, left_up_leg_left_leg, 
         left_leg_left_toe_base, left_toe_base_left_toe_end, hips_right_up_leg, right_up_leg_right_leg, 
-        right_leg_right_toe_base, right_toe_base_right_toe_end
+        right_leg_right_toe_base, right_toe_base_right_toe_end,
+        spine_2_neck, neck_head
     };
 
     return bodymodel(bones, HIPS);
@@ -1186,6 +1190,7 @@ std::vector<position> split_blaze_keypoints (std::string kp, bool reverse_y=fals
             split_string_kp_into_arr(keypoints, reverse_y)
         );
     } while (end != -1);
+    std::cout << "POSITIONS SIZE: "  << positions.size() << std::endl;
     return positions;
 }
 
@@ -1197,11 +1202,11 @@ std::tuple<bodymodel, std::unordered_map<std::string, position>> apply_rotations
 ) {
     auto blaze_vamp_mapping = blaze_to_vampire_map();
     std::vector<position> local_positions = vamp.positions;
+
     auto new_vamp = vamp;
     std::unordered_map<std::string, position> translation_map;
 
     // iterate thru blaze model to get rotation and vamp bone
-    auto first_bone = blaze.base_bones[0];
     for (auto base_bone : blaze.base_bones) {
         // get local rotations
         auto current_rot = blaze_rotations[base_bone.name];
@@ -1209,6 +1214,8 @@ std::tuple<bodymodel, std::unordered_map<std::string, position>> apply_rotations
         // get vamp pos index tuple
         auto vamp_bone_indexs = blaze_vamp_mapping[base_bone.name];
         for (auto bone_tuple : vamp_bone_indexs) {
+
+
             std::vector<bone> vamp_bones = vamp.get_all_bone_between_parent_and_child(
                 std::get<0>(bone_tuple),
                 std::get<1>(bone_tuple)
@@ -1240,6 +1247,7 @@ std::tuple<bodymodel, std::unordered_map<std::string, position>> apply_rotations
 
         }
     }
+
     new_vamp.set_positions(local_positions);
     return {new_vamp, translation_map};
 }

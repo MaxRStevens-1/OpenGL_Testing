@@ -156,6 +156,8 @@ std::unordered_map<unsigned int, std::string> hashtable_from_const() {
     hashtable[RIGHT_FOOT] = "RIGHTFOOT";
     hashtable[RIGHT_TOE_BASE] = "RIGHTTOEBASE";
     hashtable[RIGHT_TOE_END] = "RIGHTTOE_END";
+    hashtable[NECK] = "NECK";
+    hashtable[HEAD] = "HEAD";
     
     return hashtable;    
 }
