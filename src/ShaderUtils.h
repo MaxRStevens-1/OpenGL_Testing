@@ -39,7 +39,7 @@ std::vector<std::string> loadShadersFromDirectory(std::string directory_name) {
     shaders_vec[0] = vertex_buffer.str();   
 
     if (vertex_buffer.str().size() == 0) {
-        std::cout << "File size is 0 for vertex shader.\n";
+        std::cout << "File size is 0 for vertex shader: " << SHADER_PATH+directory_name+"/"+directory_name+VERTEX_EXTENSION << "\n";
     } 
 
     std::ifstream fragment(SHADER_PATH+directory_name+"/"+directory_name+FRAGMENT_EXTENSION);
