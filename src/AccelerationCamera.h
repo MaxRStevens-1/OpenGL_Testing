@@ -14,7 +14,7 @@
  class AccelerationCamera 
  {
  private:
-     float near = 0.1f;
+     float near = 0.01f;
      float far = 100.0f;
      float yaw = -90.0f;
      float pitch = 0.0f;
