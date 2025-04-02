@@ -20,6 +20,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
+void render_transparent_objs(std::vector<glm::vec3> trans_pos, Shader trans_shader, glm::vec3 camera_pos);
 unsigned int loadTexture(const char *path);
 
 // settings
@@ -79,18 +80,21 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
 
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+
     // build and compile shaders
     // -------------------------
-    Shader shader("blending");
-    // set up vertex data (and buffer(s)) and configure vertex attributes
+    Shader shader("blending_2");
+    // set up vertex data (and1 buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
 
-    std::vector<glm::vec3> vegetation;
-    vegetation.push_back(glm::vec3(-1.5f,  0.0f, -0.48f));
-    vegetation.push_back(glm::vec3( 1.5f,  0.0f,  0.51f));
-    vegetation.push_back(glm::vec3( 0.0f,  0.0f,  0.7f));
-    vegetation.push_back(glm::vec3(-0.3f,  0.0f, -2.3f));
-    vegetation.push_back(glm::vec3( 0.5f,  0.0f, -0.6f));  
+    std::vector<glm::vec3> windows;
+    windows.push_back(glm::vec3(-1.5f,  0.0f, -1.48f));
+    windows.push_back(glm::vec3( 1.5f,  0.0f,  1.51f));
+    windows.push_back(glm::vec3( 0.0f,  0.0f,  1.7f));
+    windows.push_back(glm::vec3(-0.3f,  0.0f, -3.3f));
+    windows.push_back(glm::vec3( 0.5f,  0.0f, -1.6f));  
 
     float cubeVertices[] = {
         // positions          // texture Coords
@@ -182,10 +186,10 @@ int main()
     glBindVertexArray(0);
 
     // grass VAO
-    unsigned int grassVAO, grassVBO;
-    glGenVertexArrays(1, &grassVAO);
+    unsigned int windowVAO, grassVBO;
+    glGenVertexArrays(1, &windowVAO);
     glGenBuffers(1, &grassVBO);
-    glBindVertexArray(grassVAO);
+    glBindVertexArray(windowVAO);
     glBindBuffer(GL_ARRAY_BUFFER, grassVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(grassVerticies), &grassVerticies, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
@@ -198,7 +202,7 @@ int main()
     // -------------
     unsigned int cubeTexture  = loadTexture("./textures/advanced/marble.jpg");
     unsigned int floorTexture = loadTexture("./textures/advanced/metal.png");
-    unsigned int grassTexture = loadTexture("./textures/advanced/grass.png");
+    unsigned int windowTexture = loadTexture("./textures/advanced/blending_transparent_window.png");
 
 
     // shader configuration
@@ -249,15 +253,16 @@ int main()
         shader.setMat4("model", glm::mat4(1.0f));
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        glBindVertexArray(grassVAO);
-        glBindTexture(GL_TEXTURE_2D, grassTexture);  
-        for(unsigned int i = 0; i < vegetation.size(); i++) 
-        {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, vegetation[i]);				
-            shader.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        }  
+        glBindVertexArray(windowVAO);
+        glBindTexture(GL_TEXTURE_2D, windowTexture);
+        render_transparent_objs(windows, shader, camera.camera_pos);  
+        // for(unsigned int i = 0; i < windows.size(); i++) 
+        // {
+        //     model = glm::mat4(1.0f);
+        //     model = glm::translate(model, windows[i]);				
+        //     shader.setMat4("model", model);
+        //     glDrawArrays(GL_TRIANGLES, 0, 6);
+        // }  
         glBindVertexArray(0);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -275,6 +280,22 @@ int main()
 
     glfwTerminate();
     return 0;
+}
+
+void render_transparent_objs(std::vector<glm::vec3> trans_pos, Shader trans_shader, glm::vec3 camera_pos) {
+    std::map<float, glm::vec3> sorted;
+    for (unsigned int i = 0; i < trans_pos.size(); i++) {
+        float distance = glm::length(camera_pos - trans_pos[i]);
+        sorted[distance] = trans_pos[i];
+    }
+
+    glm::mat4 model = glm::mat4(1.0f);
+    for(std::map<float,glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it) {
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, it->second);				
+        trans_shader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }  
 }
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
