@@ -88,8 +88,6 @@ int main()
     Shader screenShader("frambebuffer_simple");
 
 
-
-
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float cubeVertices[] = {
@@ -150,12 +148,12 @@ int main()
     // quad vert
     float quadVerticies[] = {
         // Front face
-        -1.0f, -1.0f,  1.0f,  0.0f, 0.0f, // bottom-left
-         1.0f, -1.0f,  1.0f,  1.0f, 0.0f, // bottom-right
-         1.0f,  1.0f,  1.0f,  1.0f, 1.0f, // top-right
-         1.0f,  1.0f,  1.0f,  1.0f, 1.0f, // top-right
-        -1.0f,  1.0f,  1.0f,  0.0f, 1.0f, // top-left
-        -1.0f, -1.0f,  1.0f,  0.0f, 0.0f, // bottom-left
+        -0.2f, -0.2f,  0.2f,  0.0f, 0.0f, // bottom-left
+        0.2f, -0.2f,  0.2f,  1.0f, 0.0f, // bottom-right
+        0.2f,  0.2f,  0.2f,  1.0f, 1.0f, // top-right
+        0.2f,  0.2f,  0.2f,  1.0f, 1.0f, // top-right
+        -0.2f,  0.2f,  0.2f,  0.0f, 1.0f, // top-left
+        -0.2f, -0.2f,  0.2f,  0.0f, 0.0f, // bottom-left
     };
     // cube VAO
     unsigned int cubeVAO, cubeVBO;
@@ -197,7 +195,8 @@ int main()
 
     // load textures
     // -------------
-    unsigned int cubeTexture  = loadTexture("./textures/advanced/marble.jpg");
+    // unsigned int cubeTexture  = loadTexture("./textures/advanced/marble.jpg");
+    unsigned int cubeTexture  = loadTexture("./textures/simple/container2.png");
     unsigned int floorTexture = loadTexture("./textures/advanced/metal.png");
 
     // frame buffer texture
@@ -288,23 +287,22 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glEnable(GL_DEPTH_TEST);
 
-        // draw scene
+        // draw scene in reverse
         shader.use();
         glm::mat4 model = glm::mat4(1.0f);
-        glm::mat4 view = camera.getView();
+        glm::mat4 view = camera.getBehindView();
         glm::mat4 projection = camera.getProjection();
-        // glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         shader.setMat4("view", view);
         shader.setMat4("projection", projection);
         // cubes
         glBindVertexArray(cubeVAO);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, cubeTexture); 	
-        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+        model = glm::translate(model, glm::vec3(-1.0f, 0.005f, -1.0f));
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+        model = glm::translate(model, glm::vec3(2.0f, 0.005f, 0.0f));
         shader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
         // floor
@@ -316,14 +314,72 @@ int main()
 
         // second pass
         glBindFramebuffer(GL_FRAMEBUFFER, 0); // back to default
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); 
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // // lets draw normal screen
+        model = glm::mat4(1.0f);
+        view = camera.getView();
+        projection = camera.getProjection();
+        shader.setMat4("view", view);
+        shader.setMat4("projection", projection);
+        // cubes
+        glBindVertexArray(cubeVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, cubeTexture); 	
+        model = glm::translate(model, glm::vec3(-1.0f, 0.005f, -1.0f));
+        shader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(2.0f, 0.005f, 0.0f));
+        shader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        // floor
+        glBindVertexArray(planeVAO);
+        glBindTexture(GL_TEXTURE_2D, floorTexture);
+        shader.setMat4("model", glm::mat4(1.0f));
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+
+
+
+
+        // now lets draw quad in reverse
+        // and lets NOT clear the screen
+        // glClearColor(1.0f, 1.0f, 1.0f, 1.0f); 
+        // glClear(GL_COLOR_BUFFER_BIT);
 
         screenShader.use();  
         glBindVertexArray(quadVAO);
         glDisable(GL_DEPTH_TEST);
         glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
         glDrawArrays(GL_TRIANGLES, 0, 6);  
+
+
+        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // glEnable(GL_DEPTH_TEST);
+        // shader.use();
+        // view = camera.getView();
+        // projection = camera.getProjection();
+        // shader.setMat4("view", view);
+        // shader.setMat4("projection", projection);
+        // // cubes
+        // glBindVertexArray(cubeVAO);
+        // glActiveTexture(GL_TEXTURE0);
+        // glBindTexture(GL_TEXTURE_2D, cubeTexture); 	
+        // // smalll y offset to prevent z fighting
+        // model = glm::translate(model, glm::vec3(-1.0f, 0.005f, -1.0f));
+        // shader.setMat4("model", model);
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
+        // model = glm::mat4(1.0f);
+        // model = glm::translate(model, glm::vec3(2.0f, 0.005f, 0.0f));
+        // shader.setMat4("model", model);
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
+        // // floor
+        // glBindVertexArray(planeVAO);
+        // glBindTexture(GL_TEXTURE_2D, floorTexture);
+        // shader.setMat4("model", glm::mat4(1.0f));
+        // glDrawArrays(GL_TRIANGLES, 0, 6);
+        // glBindVertexArray(0);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------

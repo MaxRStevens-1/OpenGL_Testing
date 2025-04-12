@@ -32,6 +32,7 @@ public:
             glGetShaderInfoLog(vertex, 512, NULL, infoLog);
             std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" <<
                 infoLog << std::endl;
+            std::cout << "THIS MEANS I HAVE FUCKED UP SHADERS" << std::endl;
         }
 
         fragment = glCreateShader(GL_FRAGMENT_SHADER);
@@ -42,6 +43,8 @@ public:
             glGetShaderInfoLog(fragment, 512, NULL, infoLog);
             std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" <<
                 infoLog << std::endl;
+            std::cout << "THIS MEANS I HAVE FUCKED UP SHADERS" << std::endl;
+
         }
 
         ID = glCreateProgram();
@@ -54,6 +57,8 @@ public:
             glGetProgramInfoLog(ID, 512, NULL, infoLog);
             std::cout << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" <<
                 infoLog << std::endl;
+            
+            std::cout << "THIS MEANS I HAVE FUCKED UP SHADERS" << std::endl;
         }
 
         glDeleteShader(vertex);

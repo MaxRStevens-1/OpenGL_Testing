@@ -6,6 +6,8 @@ in vec2 TexCoords;
 uniform sampler2D screenTexture;
 
 void main()
-{ 
-    FragColor = texture(screenTexture, TexCoords);
+{
+    FragColor = texture(screenTexture, TexCoords); 
+    // color inverse... cool?
+    // FragColor = vec4(vec3(1.0 - texture(screenTexture, TexCoords)), 1.0);
 }
