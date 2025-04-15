@@ -5,9 +5,6 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-// #include <learnopengl/shader.h>
-// #include <learnopengl/camera.h>
-// #include <learnopengl/model.h>
 #include "stb_image.h"
 #include "Model.h"
 #include "AccelerationCamera.h"
@@ -81,9 +78,6 @@ int main()
 
     // build and compile shaders
     // -------------------------
-    // Shader shader("1.1.depth_testing.vs", "1.1.depth_testing.fs");
-
-    // Shader lightingShader("obj_material");
     Shader shader("depth_testing");
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -201,7 +195,6 @@ int main()
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = camera.getView();
         glm::mat4 projection = camera.getProjection();
-        // glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         shader.setMat4("view", view);
         shader.setMat4("projection", projection);
         // cubes
