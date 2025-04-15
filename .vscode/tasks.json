@@ -14,7 +14,7 @@
                 "src/\\*.c",
                 "-lglfw3dll",
                 "-o",
-                "myprogram",
+                "opengl_book",
             ],
             "options": {
                 "cwd": "${workspaceFolder}"
