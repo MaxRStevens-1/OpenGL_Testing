@@ -18,7 +18,7 @@ std::string SHADER_PATH = "./src/shaders/";
 
 std::string VERTEX_EXTENSION = ".vert";
 std::string FRAGMENT_EXTENSION = ".frag";
-
+std::string GEOMETRY_EXTENSION = ".geom";
 
 /**
  * @brief given an name of a shader directory, reads from files into text
@@ -56,6 +56,26 @@ std::vector<std::string> loadShadersFromDirectory(std::string directory_name) {
 
     return shaders_vec;    
 }
+
+std::string loadGeoShaderFromDirectory(std::string directory_name) {
+    std::ifstream geo(SHADER_PATH+directory_name+"/"+directory_name+GEOMETRY_EXTENSION);
+
+    if (!geo) {
+        std::cout << "FAILED TO LOAD GEOMETRY SHADER FROM DIRECTORY: " << directory_name  << " DUE TO NO FILE EXISTING AT PATH" << std::endl;
+    }
+
+    std::stringstream geo_buffer;
+    geo_buffer << geo.rdbuf();
+
+    std::string geo_string = geo_buffer.str();
+
+    if (geo_string.length() == 0) {
+        std::cout << "FAILED TO LOAD GEOMETRY SHADER FROM DIRECTORY: " << directory_name << "DUE TO FILE BEING EMPTY" << std::endl;
+    } 
+
+    return geo_string;
+}
+
 
 int generateTextureFromPath(std::string path, unsigned int texture) {
     glGenTextures(1, &texture);

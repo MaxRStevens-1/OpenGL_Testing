@@ -75,12 +75,14 @@ int main()
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_POINT_SIZE);
     glDepthFunc(GL_LESS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
 
     // build and compile shaders
     // -------------------------
-    Shader shader("depth_testing");
-    Shader skybox_shader("cubemap");
+    // Shader shader("depth_testing");
+    // Shader skybox_shader("cubemap");
+    GeoShader geo_shader("geo");
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float cubeVertices[] = {
@@ -182,62 +184,83 @@ int main()
          1.0f, -1.0f,  1.0f
     };
     // cube VAO
-    unsigned int cubeVAO, cubeVBO;
-    glGenVertexArrays(1, &cubeVAO);
-    glGenBuffers(1, &cubeVBO);
-    glBindVertexArray(cubeVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glBindVertexArray(0);
-    // plane VAO
-    unsigned int planeVAO, planeVBO;
-    glGenVertexArrays(1, &planeVAO);
-    glGenBuffers(1, &planeVBO);
-    glBindVertexArray(planeVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), &planeVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glBindVertexArray(0);
+    // unsigned int cubeVAO, cubeVBO;
+    // glGenVertexArrays(1, &cubeVAO);
+    // glGenBuffers(1, &cubeVBO);
+    // glBindVertexArray(cubeVAO);
+    // glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), &cubeVertices, GL_STATIC_DRAW);
+    // glEnableVertexAttribArray(0);
+    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    // glEnableVertexAttribArray(1);
+    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    // glBindVertexArray(0);
+    // // plane VAO
+    // unsigned int planeVAO, planeVBO;
+    // glGenVertexArrays(1, &planeVAO);
+    // glGenBuffers(1, &planeVBO);
+    // glBindVertexArray(planeVAO);
+    // glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), &planeVertices, GL_STATIC_DRAW);
+    // glEnableVertexAttribArray(0);
+    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    // glEnableVertexAttribArray(1);
+    // glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    // glBindVertexArray(0);
 
-    // load textures
-    // -------------
-    unsigned int cubeTexture  = loadTexture("./textures/advanced/marble.jpg");
-    unsigned int floorTexture = loadTexture("./textures/advanced/metal.png");
+    // // load textures
+    // // -------------
+    // unsigned int cubeTexture  = loadTexture("./textures/advanced/marble.jpg");
+    // unsigned int floorTexture = loadTexture("./textures/advanced/metal.png");
 
 
     // load cubemap
     // -------------
-    std::vector<std::string> faces = {
-        "./textures/skyboxes/pretty_lake/right.jpg",
-        "./textures/skyboxes/pretty_lake/left.jpg",
-        "./textures/skyboxes/pretty_lake/top.jpg",
-        "./textures/skyboxes/pretty_lake/bottom.jpg",
-        "./textures/skyboxes/pretty_lake/front.jpg",
-        "./textures/skyboxes/pretty_lake/back.jpg"
-    };
-    unsigned int skybox_texture = load_cubemap(faces);   
+    // std::vector<std::string> faces = {
+    //     "./textures/skyboxes/pretty_lake/right.jpg",
+    //     "./textures/skyboxes/pretty_lake/left.jpg",
+    //     "./textures/skyboxes/pretty_lake/top.jpg",
+    //     "./textures/skyboxes/pretty_lake/bottom.jpg",
+    //     "./textures/skyboxes/pretty_lake/front.jpg",
+    //     "./textures/skyboxes/pretty_lake/back.jpg"
+    // };
+    // unsigned int skybox_texture = load_cubemap(faces);   
 
-    unsigned int skyboxVAO, skyboxVBO;
-    glGenVertexArrays(1, &skyboxVAO);
-    glGenBuffers(1, &skyboxVBO);
-    glBindVertexArray(skyboxVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    // unsigned int skyboxVAO, skyboxVBO;
+    // glGenVertexArrays(1, &skyboxVAO);
+    // glGenBuffers(1, &skyboxVBO);
+    // glBindVertexArray(skyboxVAO);
+    // glBindBuffer(GL_ARRAY_BUFFER, skyboxVBO);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), &skyboxVertices, GL_STATIC_DRAW);
+    // glEnableVertexAttribArray(0);
+    // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    // glBindVertexArray(0);
+
+    float points[] = {
+        -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // top-left
+         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // top-right
+         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // bottom-right
+        -0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // bottom-left
+    };  
+
+    unsigned int pointsVAO, pointsVBO;
+    glGenVertexArrays(1, &pointsVAO);
+    glGenBuffers(1, &pointsVBO);
+    glBindVertexArray(pointsVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, pointsVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(points), &points, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
     glBindVertexArray(0);
+
+
 
     // shader configuration
     // --------------------
-    shader.use();
-    shader.setInt("texture1", 0);
+    // shader.use();
+    // shader.setInt("texture1", 0);
     // render loop
     // -----------
     while(!glfwWindowShouldClose(window))
@@ -257,33 +280,38 @@ int main()
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // we want to set up skybox first
-        render_skybox(skybox_shader, skybox_texture, skyboxVAO);
-        // and then draw the rest of the scene on top of it
 
-        shader.use();
-        glm::mat4 model = glm::mat4(1.0f);
-        glm::mat4 view = camera.getView();
-        glm::mat4 projection = camera.getProjection();
-        shader.setMat4("view", view);
-        shader.setMat4("projection", projection);
-        // cubes
-        glBindVertexArray(cubeVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, cubeTexture); 	
-        model = glm::translate(model, glm::vec3(-1.0f, 0.0005f, -1.0f));
-        shader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3( 2.0f, 0.0005f, 0.0f));
-        shader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        // floor
-        glBindVertexArray(planeVAO);
-        glBindTexture(GL_TEXTURE_2D, floorTexture);
-        shader.setMat4("model", glm::mat4(1.0f));
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
+        geo_shader.use();
+        glBindVertexArray(pointsVAO);
+        glDrawArrays(GL_POINTS, 0, 4); 
+
+        // // we want to set up skybox first
+        // render_skybox(skybox_shader, skybox_texture, skyboxVAO);
+        // // and then draw the rest of the scene on top of it
+
+        // shader.use();
+        // glm::mat4 model = glm::mat4(1.0f);
+        // glm::mat4 view = camera.getView();
+        // glm::mat4 projection = camera.getProjection();
+        // shader.setMat4("view", view);
+        // shader.setMat4("projection", projection);
+        // // cubes
+        // glBindVertexArray(cubeVAO);
+        // glActiveTexture(GL_TEXTURE0);
+        // glBindTexture(GL_TEXTURE_2D, cubeTexture); 	
+        // model = glm::translate(model, glm::vec3(-1.0f, 0.0005f, -1.0f));
+        // shader.setMat4("model", model);
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
+        // model = glm::mat4(1.0f);
+        // model = glm::translate(model, glm::vec3( 2.0f, 0.0005f, 0.0f));
+        // shader.setMat4("model", model);
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
+        // // floor
+        // glBindVertexArray(planeVAO);
+        // glBindTexture(GL_TEXTURE_2D, floorTexture);
+        // shader.setMat4("model", glm::mat4(1.0f));
+        // glDrawArrays(GL_TRIANGLES, 0, 6);
+        // glBindVertexArray(0);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -293,10 +321,10 @@ int main()
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &cubeVAO);
-    glDeleteVertexArrays(1, &planeVAO);
-    glDeleteBuffers(1, &cubeVBO);
-    glDeleteBuffers(1, &planeVBO);
+    // glDeleteVertexArrays(1, &cubeVAO);
+    // glDeleteVertexArrays(1, &planeVAO);
+    // glDeleteBuffers(1, &cubeVBO);
+    // glDeleteBuffers(1, &planeVBO);
 
     glfwTerminate();
     return 0;
