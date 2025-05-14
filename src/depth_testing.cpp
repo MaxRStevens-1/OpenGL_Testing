@@ -6,12 +6,12 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "stb_image.h"
-#include "Model.h"
 #include "AccelerationCamera.h"
 #include "ShaderUtils.h"
 #include "Shader.h"
 
 #include <iostream>
+#include "Model.h"
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -75,14 +75,17 @@ int main()
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_POINT_SIZE);
-    glDepthFunc(GL_LESS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
+    // glEnable(GL_POINT_SIZE);
+    // glDepthFunc(GL_LESS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
 
     // build and compile shaders
     // -------------------------
     // Shader shader("depth_testing");
     // Shader skybox_shader("cubemap");
-    GeoShader geo_shader("geo");
+    Shader model_shader("model_loading");
+    GeoShader normal_viz("norm_viz");
+    // Shader explode_shader("model_loading");
+
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float cubeVertices[] = {
@@ -236,25 +239,33 @@ int main()
     // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     // glBindVertexArray(0);
 
-    float points[] = {
-        -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // top-left
-         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // top-right
-         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // bottom-right
-        -0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // bottom-left
-    };  
+    // float points[] = {
+    //     -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // top-left
+    //      0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // top-right
+    //      0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // bottom-right
+    //     -0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // bottom-left
+    // };  
 
-    unsigned int pointsVAO, pointsVBO;
-    glGenVertexArrays(1, &pointsVAO);
-    glGenBuffers(1, &pointsVBO);
-    glBindVertexArray(pointsVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, pointsVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(points), &points, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
-    glBindVertexArray(0);
+    // unsigned int pointsVAO, pointsVBO;
+    // glGenVertexArrays(1, &pointsVAO);
+    // glGenBuffers(1, &pointsVBO);
+    // glBindVertexArray(pointsVAO);
+    // glBindBuffer(GL_ARRAY_BUFFER, pointsVBO);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(points), &points, GL_STATIC_DRAW);
+    // glEnableVertexAttribArray(0);
+    // glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    // glEnableVertexAttribArray(1);
+    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+    // glBindVertexArray(0);
 
+    // path from models folder to desired obj files...
+    std::string path = std::string("backpack/backpack.obj");
+
+    Model backpack(path);
+    std::cout << "CREATED MODEL" << std::endl;
+
+
+    model_shader.use();
 
 
     // shader configuration
@@ -280,11 +291,25 @@ int main()
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        // configure transformation matrices
+        glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = camera.getView();;
+        glm::mat4 model = glm::mat4(1.0f);
+        model_shader.use();
+        model_shader.setMat4("projection", projection);
+        model_shader.setMat4("view", view);
+        model_shader.setMat4("model", model);
 
-        geo_shader.use();
-        glBindVertexArray(pointsVAO);
-        glDrawArrays(GL_POINTS, 0, 4); 
+        // add time component to geometry shader in the form of a uniform
+        // model_shader.setFloat("time", static_cast<float>(glfwGetTime()));
+        backpack.Draw(model_shader);
+        
+        normal_viz.use();
+        normal_viz.setMat4("projection", projection);
+        normal_viz.setMat4("view", view);
+        normal_viz.setMat4("model", model);
 
+        backpack.Draw(normal_viz);
         // // we want to set up skybox first
         // render_skybox(skybox_shader, skybox_texture, skyboxVAO);
         // // and then draw the rest of the scene on top of it

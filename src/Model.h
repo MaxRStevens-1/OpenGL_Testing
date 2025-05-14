@@ -125,13 +125,13 @@ class Model {
                 auto pos = path.find_last_of('/');
                 if (pos != std::string::npos) {
                     std::string dir = path.substr(0, pos);
-                    // get texture of diffuse
-                    std::string diffuse_path = MODEL_PATH+dir+"/"+materials[i].diffuse_texname;
-                    Texture diffuse_textures = load_texture(diffuse_path, "texture_diffuse");
-                    textures.push_back(diffuse_textures);
-                    std::string specular_path = MODEL_PATH + "/"+materials[i].specular_texname;
+                    std::string specular_path = MODEL_PATH + dir + "/" + materials[i].specular_texname;
                     Texture specular_textures = load_texture(specular_path, "texture_specular");
                     textures.push_back(specular_textures);
+                    // get texture of diffuse
+                    std::string diffuse_path = MODEL_PATH + dir + "/" +materials[i].diffuse_texname;
+                    Texture diffuse_textures = load_texture(diffuse_path, "texture_diffuse");
+                    textures.push_back(diffuse_textures);
                 }
             }
             // now create mesh and add to mesh list

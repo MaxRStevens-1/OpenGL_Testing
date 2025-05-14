@@ -75,7 +75,10 @@
         "xtr1common": "cpp",
         "xtree": "cpp",
         "xutility": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "numeric": "cpp",
+        "random": "cpp",
+        "numbers": "cpp"
     },
     "cmake.sourceDirectory": "C:/Users/maxws/projects/OpenGL_Testing/include/glm"
 }
