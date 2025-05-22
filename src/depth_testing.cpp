@@ -12,6 +12,7 @@
 #include "Shader.h"
 
 #include <iostream>
+#include <chrono>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -79,8 +80,16 @@ int main()
 
     // build and compile shaders
     // -------------------------
-    Shader shader("instancing_arrays");
+    Shader space_3d("space_3d");
+    Shader instanced_space_3d("instance_space_3d");
+
     Shader skybox_shader("cubemap");
+
+    // create models
+    Model planet_model("planet/planet.obj");
+    Model rock_model("rock/rock.obj");
+
+
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     // float cubeVertices[] = {
@@ -212,52 +221,54 @@ int main()
     // unsigned int floorTexture = loadTexture("./textures/advanced/metal.png");
 
     // verticies
-    float quad_verticies[] = {
-        // positions     // colors
-        -0.05f,  0.05f,  1.0f, 0.0f, 0.0f,
-        0.05f, -0.05f,  0.0f, 1.0f, 0.0f,
-        -0.05f, -0.05f,  0.0f, 0.0f, 1.0f,
+    // float quad_verticies[] = {
+    //     // positions     // colors
+    //     -0.05f,  0.05f,  1.0f, 0.0f, 0.0f,
+    //     0.05f, -0.05f,  0.0f, 1.0f, 0.0f,
+    //     -0.05f, -0.05f,  0.0f, 0.0f, 1.0f,
 
-        -0.05f,  0.05f,  1.0f, 0.0f, 0.0f,
-        0.05f, -0.05f,  0.0f, 1.0f, 0.0f,   
-        0.05f,  0.05f,  0.0f, 1.0f, 1.0f		    		
-    };  
-    // setting the translations 2 pass 2 gpu
-    glm::vec2 translations[100];
-    int index = 0;
-    float offset = 0.1f;
-    for(int y = -10; y < 10; y += 2) {
-        for(int x = -10; x < 10; x += 2) {
-            glm::vec2 translation;
-            translation.x = (float)x / 10.0f + offset;
-            translation.y = (float)y / 10.0f + offset;
-            translations[index++] = translation;
-        }
-    }  
+    //     -0.05f,  0.05f,  1.0f, 0.0f, 0.0f,
+    //     0.05f, -0.05f,  0.0f, 1.0f, 0.0f,   
+    //     0.05f,  0.05f,  0.0f, 1.0f, 1.0f		    		
+    // };  
+    // // setting the translations 2 pass 2 gpu
+    // glm::vec2 translations[100];
+    // int index = 0;
+    // float offset = 0.1f;
+    // for(int y = -10; y < 10; y += 2) {
+    //     for(int x = -10; x < 10; x += 2) {
+    //         glm::vec2 translation;
+    //         translation.x = (float)x / 10.0f + offset;
+    //         translation.y = (float)y / 10.0f + offset;
+    //         translations[index++] = translation;
+    //     }
+    // }  
 
 
-    // vao & vbo set up
-    unsigned int quadVAO, quadVBO;
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quad_verticies), &quad_verticies, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
-    // setting up instancing vbo  
+    // // vao & vbo set up
+    // unsigned int quadVAO, quadVBO;
+    // glGenVertexArrays(1, &quadVAO);
+    // glGenBuffers(1, &quadVBO);
+    // glBindVertexArray(quadVAO);
+    // glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(quad_verticies), &quad_verticies, GL_STATIC_DRAW);
+    // glEnableVertexAttribArray(0);
+    // glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    // glEnableVertexAttribArray(1);
+    // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
+    // // setting up instancing vbo  
 
-    unsigned int instanceVBO;
-    glGenBuffers(1, &instanceVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 100, &translations[0], GL_STATIC_DRAW);
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);	
-    glVertexAttribDivisor(2, 1);  
-    glBindVertexArray(0);
+    // unsigned int instanceVBO;
+    // glGenBuffers(1, &instanceVBO);
+    // glBindBuffer(GL_ARRAY_BUFFER, instanceVBO);
+    // glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 100, &translations[0], GL_STATIC_DRAW);
+    // glEnableVertexAttribArray(2);
+    // glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    // glBindBuffer(GL_ARRAY_BUFFER, 0);	
+    // glVertexAttribDivisor(2, 1);  
+    // glBindVertexArray(0);
+
+
 
     // sending translations 2 vert shade
     // shader.use();
@@ -289,10 +300,75 @@ int main()
     // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     // glBindVertexArray(0);
 
+    // vertex buffer object
+
+
+    unsigned int amount = 100000;
+    glm::mat4 *modelMatrices;
+    modelMatrices = new glm::mat4[amount];
+    srand(glfwGetTime()); // initialize random seed	
+    float radius = 200.0;
+    float offset = 20.0f;
+    for(unsigned int i = 0; i < amount; i++) {
+        glm::mat4 model = glm::mat4(1.0f);
+        // 1. translation: displace along circle with 'radius' in range [-offset, offset]
+        float angle = (float)i / (float)amount * 360.0f;
+        float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float x = sin(angle) * radius + displacement;
+        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float y = displacement * 0.4f; // keep height of field smaller compared to width of x and z
+        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float z = cos(angle) * radius + displacement;
+        model = glm::translate(model, glm::vec3(x, y, z));
+
+        // 2. scale: scale between 0.05 and 0.25f
+        float scale = (rand() % 20) / 100.0f + 0.05;
+        model = glm::scale(model, glm::vec3(scale));
+
+        // 3. rotation: add random rotation around a (semi)randomly picked rotation axis vector
+        float rotAngle = (rand() % 360);
+        model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+
+        // 4. now add to list of matrices
+        modelMatrices[i] = model;
+    } 
+
+    unsigned int buffer;
+    glGenBuffers(1, &buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
+    glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
+    
+    for (unsigned int i = 0; i < rock_model.meshes.size(); i++) {
+        unsigned int VAO = rock_model.meshes[i].VAO;
+        glBindVertexArray(VAO);
+        // vertex attributes
+        std::size_t vec4Size = sizeof(glm::vec4);
+        glEnableVertexAttribArray(3); 
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
+        glEnableVertexAttribArray(4); 
+        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(1 * vec4Size));
+        glEnableVertexAttribArray(5); 
+        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
+        glEnableVertexAttribArray(6); 
+        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
+
+        glVertexAttribDivisor(3, 1);
+        glVertexAttribDivisor(4, 1);
+        glVertexAttribDivisor(5, 1);
+        glVertexAttribDivisor(6, 1);
+        // glVertexAttribDivisor(/)
+        glBindVertexArray(0);
+
+        GLenum e = glGetError();
+        if (e != GL_NO_ERROR) {
+            fprintf(stderr, "OpenGL error in \"%s\": %d (%d)\n", "create rock matricies", e, e);
+            exit(20);
+        }        
+    }  
+
     // shader configuration
     // --------------------
-    shader.use();
-    // shader.setInt("texture1", 0);
+    space_3d.use();
     // render loop
     // -----------
     while(!glfwWindowShouldClose(window))
@@ -316,14 +392,42 @@ int main()
         // render_skybox(skybox_shader, skybox_texture, skyboxVAO);
         // and then draw the rest of the scene on top of it
 
-        shader.use();
-        glBindVertexArray(quadVAO);
-        glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 100);  
-        // glm::mat4 model = glm::mat4(1.0f);
-        // glm::mat4 view = camera.getView();
-        // glm::mat4 projection = camera.getProjection();
-        // shader.setMat4("view", view);
-        // shader.setMat4("projection", projection);
+        space_3d.use();
+        glm::mat4 model = glm::mat4(1.0f);
+        glm::mat4 view = camera.getView();
+        glm::mat4 projection = camera.getProjection();
+        space_3d.setMat4("view", view);
+        space_3d.setMat4("projection", projection);
+
+
+        model = glm::translate(model, glm::vec3(0.0f, -3.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(4.0f, 4.0f, 4.0f));
+        space_3d.setMat4("model", model);
+        planet_model.Draw(space_3d);
+        
+        // draw meteorites
+        instanced_space_3d.use();
+        instanced_space_3d.setMat4("view", view);
+        instanced_space_3d.setMat4("projection", projection);
+        // Get the current time from the system clock
+        instanced_space_3d.setFloat("time", currentFrame);
+        std::cout << "miliseconds in float is " << currentFrame << "." << std::endl;
+        for (unsigned int i = 0; i < rock_model.meshes.size(); i++)
+        {
+            glBindVertexArray(rock_model.meshes[i].VAO);
+            glDrawArraysInstanced(
+                GL_TRIANGLES, 0, rock_model.meshes[i].vertices.size(), amount
+            );
+            GLenum e = glGetError();
+            if (e != GL_NO_ERROR) {
+                fprintf(stderr, "OpenGL error in \"%s\": %d (%d)\n", "draw elements", e, e);
+                exit(20);
+            }
+        }  
+
+        // glBindVertexArray(quadVAO);
+        // glDrawArraysInstanced(GL_TRIANGLES, 0, 6, 100);  
+
         // // cubes
         // glBindVertexArray(cubeVAO);
         // glActiveTexture(GL_TEXTURE0);
@@ -393,15 +497,13 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
 
 // utility function for loading a 2D texture from file
 // ---------------------------------------------------
-unsigned int loadTexture(char const *path)
-{
+unsigned int loadTexture(char const *path) {
     unsigned int textureID;
     glGenTextures(1, &textureID);
 
     int width, height, nrComponents;
     unsigned char *data = stbi_load(path, &width, &height, &nrComponents, 0);
-    if (data)
-    {
+    if (data) {
         GLenum format;
         if (nrComponents == 1)
             format = GL_RED;
@@ -421,8 +523,7 @@ unsigned int loadTexture(char const *path)
 
         stbi_image_free(data);
     }
-    else
-    {
+    else {
         std::cout << "Texture failed to load at path: " << path << std::endl;
         stbi_image_free(data);
     }

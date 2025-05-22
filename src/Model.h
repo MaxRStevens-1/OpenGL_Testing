@@ -23,6 +23,7 @@ std::string MODEL_PATH = "./src/models/";
 class Model {
     public:
         std::string path;
+        std::vector<Mesh> meshes;
 
         Model(std::string local_path) {
             path = local_path;
@@ -35,7 +36,6 @@ class Model {
             }
         }
     private:
-        std::vector<Mesh> meshes;
         std::vector<Texture> textures_loaded;
 
         // implementation largerly bastardization of opengl assimp / tinyobjloader examples
@@ -126,12 +126,18 @@ class Model {
                 if (pos != std::string::npos) {
                     std::string dir = path.substr(0, pos);
                     // get texture of diffuse
-                    std::string diffuse_path = MODEL_PATH+dir+"/"+materials[i].diffuse_texname;
-                    Texture diffuse_textures = load_texture(diffuse_path, "texture_diffuse");
-                    textures.push_back(diffuse_textures);
-                    std::string specular_path = MODEL_PATH + "/"+materials[i].specular_texname;
-                    Texture specular_textures = load_texture(specular_path, "texture_specular");
-                    textures.push_back(specular_textures);
+                    if (!materials[i].diffuse_texname.empty()) {
+                        std::string diffuse_path = MODEL_PATH+dir+"/"+materials[i].diffuse_texname;
+                        Texture diffuse_textures = load_texture(diffuse_path, "texture_diffuse");
+                        textures.push_back(diffuse_textures);
+                    }
+
+                    if (!materials[i].specular_texname.empty()) {
+                        std::string specular_path = MODEL_PATH + "/"+materials[i].specular_texname;
+                        Texture specular_textures = load_texture(specular_path, "texture_specular");
+                        textures.push_back(specular_textures);
+                    }
+
                 }
             }
             // now create mesh and add to mesh list

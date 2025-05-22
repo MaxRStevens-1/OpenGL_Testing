@@ -32,6 +32,7 @@ class Mesh {
         // mesh data
         std::vector<Vertex> vertices;
         std::vector<Texture> textures;
+        unsigned int VAO, VBO;
 
         Mesh (std::vector<Vertex> vertices, std::vector<Texture> textures) {
             this->vertices = vertices;
@@ -65,8 +66,8 @@ class Mesh {
                     fprintf(stderr, "OpenGL error in \"%s\": %d (%d)\n", "setting material float", e, e);
                     exit(20);
                 }
+                glBindTexture(GL_TEXTURE_2D, textures[i].id);
             }
-            glActiveTexture(GL_TEXTURE0);
 
             shader.setFloat("material.shininess", .25f*(BASE_SHINY_MULTIPLE));
 
@@ -75,6 +76,9 @@ class Mesh {
             glBindVertexArray(VAO);
             glDrawArrays(GL_TRIANGLES, 0, vertices.size());
             glBindVertexArray(0);
+
+            glActiveTexture(GL_TEXTURE0); 
+
 
             GLenum e = glGetError();
             if (e != GL_NO_ERROR) {
@@ -85,7 +89,6 @@ class Mesh {
 
     private:
         // render data
-        unsigned int VAO, VBO;
 
         void setupMesh() {
             glGenVertexArrays(1, &VAO);
