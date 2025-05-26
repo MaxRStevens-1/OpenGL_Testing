@@ -31,7 +31,8 @@
  
      int SCR_WIDTH;
      int SCR_HEIGHT;
- 
+     float camera_speed_multiplier = 1.0f;
+
  
  public:
      glm::vec3 camera_pos   = glm::vec3(0.0f, 0.0f, 3.0f);
@@ -51,8 +52,7 @@
  
          timeUpdate();
  
-         float camera_speed = 2.5f * delta_time;
- 
+         float camera_speed = 2.5f * delta_time * camera_speed_multiplier;
  
          if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
              velocity += camera_speed * camera_front;
@@ -70,8 +70,6 @@
              velocity += glm::normalize(glm::cross(camera_front, camera_up)) * camera_speed;
          }
  
- 
- 
          if (glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
              velocity -= camera_speed * camera_up;
          }
@@ -80,7 +78,21 @@
          if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) {
              velocity += camera_speed * camera_up;
          }
+
+
+         if (glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS) {
+             camera_speed_multiplier *= 1.05;
+         }
  
+
+         if (glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS) {
+             camera_speed_multiplier *= 0.95;
+         }
+
+         if (glfwGetKey(window, GLFW_KEY_END) == GLFW_PRESS) {
+             camera_speed_multiplier = 1;
+         }
+
          camera_movement_update();
      }
  
