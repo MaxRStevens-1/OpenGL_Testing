@@ -410,8 +410,8 @@ int main()
         instanced_space_3d.setMat4("view", view);
         instanced_space_3d.setMat4("projection", projection);
         // Get the current time from the system clock
-        instanced_space_3d.setFloat("time", currentFrame);
-        std::cout << "miliseconds in float is " << currentFrame << "." << std::endl;
+        instanced_space_3d.setFloat("time", currentFrame * 0.1f);
+        std::cout << "miliseconds in float is " << currentFrame * 0.1f << "." << std::endl;
         for (unsigned int i = 0; i < rock_model.meshes.size(); i++)
         {
             glBindVertexArray(rock_model.meshes[i].VAO);
