@@ -38,7 +38,8 @@
      glm::vec3 camera_pos   = glm::vec3(0.0f, 0.0f, 3.0f);
      glm::vec3 camera_front = glm::vec3(0.0f, 0.0f, -1.0f);
      glm::vec3 camera_up    = glm::vec3(0.0f, 1.0f, 0.0f);
- 
+     bool blinn = true;
+
      AccelerationCamera() {
  
      }
@@ -83,7 +84,6 @@
          if (glfwGetKey(window, GLFW_KEY_PAGE_UP) == GLFW_PRESS) {
              camera_speed_multiplier *= 1.05;
          }
- 
 
          if (glfwGetKey(window, GLFW_KEY_PAGE_DOWN) == GLFW_PRESS) {
              camera_speed_multiplier *= 0.95;
@@ -91,6 +91,10 @@
 
          if (glfwGetKey(window, GLFW_KEY_END) == GLFW_PRESS) {
              camera_speed_multiplier = 1;
+         }
+
+         if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS) {
+             blinn = !blinn;
          }
 
          camera_movement_update();
