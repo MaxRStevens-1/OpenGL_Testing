@@ -59,9 +59,6 @@ void main()
 {
     vec3 lightDir = normalize(light.position - FragPos);
     
-    // lets do gamma b4 anything else ^.^
-    float gamma = 2.2;
-    vec3 diffuseColor = pow(texture(material.diffuse, TexCoords).rgb, vec3(gamma));
     // check if lighting is inside the spotlight cone
     float theta = dot(lightDir, normalize(-light.direction)); 
     float epsilon   = light.cutOff - light.outerCutOff;
@@ -69,12 +66,12 @@ void main()
     // remember that we're working with angles as cosines instead of degrees so a '>' is used.
     if (theta > light.outerCutOff) {    
         // ambient
-        vec3 ambient = light.ambient * diffuseColor;
+        vec3 ambient = light.ambient * texture(material.diffuse, TexCoords).rgb;
         
         // diffuse 
         vec3 norm = normalize(Normal);
         float diff = max(dot(norm, lightDir), 0.0);
-        vec3 diffuse = light.diffuse * diff * diffuseColor;  
+        vec3 diffuse = light.diffuse * diff * texture(material.diffuse, TexCoords).rgb;  
         
         // specular
         vec3 viewDir = normalize(viewPos - FragPos);
@@ -102,7 +99,7 @@ void main()
         FragColor = vec4(result, 1.0);
     } else {
         // else, use ambient light so scene isn't completely dark outside the spotlight.
-        FragColor = vec4(light.ambient * diffuseColor, 1.0);
+        FragColor = vec4(light.ambient * texture(material.diffuse, TexCoords).rgb, 1.0);
         // FragColor = vec4(texture(material.diffuse, TexCoords).rgb, 1.0);
         // FragColor = vec4(TexCoords, 0.0, 1.0);
     }
