@@ -23,7 +23,7 @@ void render_skybox(Shader skyboxShader, unsigned int skybox_texture, unsigned in
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
-
+const int MSSA_SAMPLES = 4;  
 // camera
 AccelerationCamera camera(SCR_WIDTH, SCR_HEIGHT);
 float lastX = (float)SCR_WIDTH  / 2.0;
@@ -42,6 +42,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_SAMPLES, MSSA_SAMPLES);
 
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -76,6 +77,7 @@ int main()
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
+    glEnable(GL_MULTISAMPLE);  
 
     // build and compile shaders
     // -------------------------
