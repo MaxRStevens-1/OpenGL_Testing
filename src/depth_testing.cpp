@@ -20,6 +20,17 @@ void processInput(GLFWwindow *window);
 unsigned int loadTexture(const char *path);
 unsigned int load_cubemap (std::vector<std::string> faces);
 void render_skybox(Shader skyboxShader, unsigned int skybox_texture, unsigned int skyboxVAO);
+void render_scene(
+    Shader skybox_shader,
+    unsigned int skybox_texture,
+    unsigned int skyboxVAO,
+    Shader shader,
+    unsigned int planeVAO,
+    unsigned int cube_texture,
+    unsigned int cubeVAO,
+    bool is_shadow_pass
+);
+glm::mat4 configure_shader_and_matrices();
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -82,9 +93,63 @@ int main()
     // build and compile shaders
     // -------------------------
     Shader shader("model_loading");
+    Shader simple_depth("simple_depth");
     Shader skybox_shader("cubemap");
+    Shader twod_fbo_texture("render_fbo_2d");
+
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
+    float quad_vertices[] = {
+        // positions        // texture Coords
+        -1.0f,  1.0f, 0.0f, 0.0f, 1.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f, 0.0f,
+            1.0f,  1.0f, 0.0f, 1.0f, 1.0f,
+            1.0f, -1.0f, 0.0f, 1.0f, 0.0f,
+    };
+    float skyboxVertices[] = {
+        // positions          
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+    
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+    
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+    
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+    
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+    
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
+    };
     float cube_vertices[] = {
         // back face
         -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
@@ -168,58 +233,48 @@ int main()
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glBindVertexArray(0);
-
+    // screen quad VAO
+    unsigned int quadVAO, quadVBO;
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quad_vertices), &quad_vertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     // load textures
     // -------------
     unsigned int cube_texture  = loadTexture("./textures/advanced/wood.png");
+    
+    // create shadowmaps framebuffer depth buffer
 
+    // create depth texture
+    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+    unsigned int depthMapFBO;
+    glGenFramebuffers(1, &depthMapFBO);  
+
+    unsigned int depth_map;
+    glGenTextures(1, &depth_map);
+    glBindTexture(GL_TEXTURE_2D, depth_map);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 
+                SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);  
+
+    // lets attach it to framebuffer's depth buffer
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_map, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);  
 
     // load cubemap
     // -------------
-    float skyboxVertices[] = {
-        // positions          
-        -1.0f,  1.0f, -1.0f,
-        -1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-         1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-    
-        -1.0f, -1.0f,  1.0f,
-        -1.0f, -1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f, -1.0f,
-        -1.0f,  1.0f,  1.0f,
-        -1.0f, -1.0f,  1.0f,
-    
-         1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-    
-        -1.0f, -1.0f,  1.0f,
-        -1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f, -1.0f,  1.0f,
-        -1.0f, -1.0f,  1.0f,
-    
-        -1.0f,  1.0f, -1.0f,
-         1.0f,  1.0f, -1.0f,
-         1.0f,  1.0f,  1.0f,
-         1.0f,  1.0f,  1.0f,
-        -1.0f,  1.0f,  1.0f,
-        -1.0f,  1.0f, -1.0f,
-    
-        -1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f,  1.0f,
-         1.0f, -1.0f, -1.0f,
-         1.0f, -1.0f, -1.0f,
-        -1.0f, -1.0f,  1.0f,
-         1.0f, -1.0f,  1.0f
-    };
+
     std::vector<std::string> faces = {
         "./textures/skyboxes/pretty_lake/right.jpg",
         "./textures/skyboxes/pretty_lake/left.jpg",
@@ -240,10 +295,17 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glBindVertexArray(0);
 
+    // loading const data
+    // ------------------
+    // lets grab some const mat4's
+    glm::mat4 light_space_matrix = configure_shader_and_matrices();
+
     // shader configuration
     // --------------------
     shader.use();
     shader.setInt("texture_diffuse1", 0);
+    twod_fbo_texture.use();
+    twod_fbo_texture.setInt("depthMap", 0);
     // render loop
     // -----------
     while(!glfwWindowShouldClose(window))
@@ -263,45 +325,54 @@ int main()
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // we want to set up skybox first
-        render_skybox(skybox_shader, skybox_texture, skyboxVAO);
-        // and then draw the rest of the scene on top of it
+        // render to depth map
+        simple_depth.use();
+        simple_depth.setMat4("lightSpaceMatrix", light_space_matrix);
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+            glClear(GL_DEPTH_BUFFER_BIT);
+            glActiveTexture(GL_TEXTURE0);
+            render_scene(
+                skybox_shader,
+                skybox_texture,
+                skyboxVAO,
+                simple_depth,
+                planeVAO,
+                cube_texture,
+                cubeVAO,
+                true
+            );
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        shader.use();
-        glm::mat4 model = glm::mat4(1.0f);
-        glm::mat4 view = camera.getView();
-        glm::mat4 projection = camera.getProjection();
-        shader.setMat4("view", view);
-        shader.setMat4("projection", projection);
+        // DEBUG_RENDER_DEPTH_FROM_LIGHT
+        // glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
-        // floor
-        glBindVertexArray(planeVAO);
-        glBindTexture(GL_TEXTURE_2D, cube_texture);
-        model = glm::mat4(1.0f);
-        shader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        // reset
-        glActiveTexture(GL_TEXTURE0);
+        // twod_fbo_texture.use();
+        // twod_fbo_texture.setFloat("near_plane", 1.0f);
+        // twod_fbo_texture.setFloat("far_plane", 10.5f);
+        // glActiveTexture(GL_TEXTURE0);
+        // glBindTexture(GL_TEXTURE_2D, depth_map);
+        // glBindVertexArray(quadVAO);
+        // glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-        // cubes
-        glBindVertexArray(cubeVAO);
-        glBindTexture(GL_TEXTURE_2D, cube_texture); 	
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
-        model = glm::scale(model, glm::vec3(0.5f));
-        shader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 1.0));
-        model = glm::scale(model, glm::vec3(0.5f));
-        shader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 2.0));
-        model = glm::rotate(model, glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
-        model = glm::scale(model, glm::vec3(0.25));
-        shader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
+        
+
+        // // render scene as normal
+        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        // glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        // // ConfigureShaderAndMatrices();
+        // // glBindTexture(GL_TEXTURE_2D, depthMap);
+        // render_scene(
+        //     skybox_shader,
+        //     skybox_texture,
+        //     skyboxVAO,
+        //     shader,
+        //     planeVAO,
+        //     cube_texture,
+        //     cubeVAO,
+        //     false
+        // );
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -319,6 +390,76 @@ int main()
     glfwTerminate();
     return 0;
 }
+
+glm::mat4 configure_shader_and_matrices() {
+    float near_plane = 1.0f, far_plane = 10.5f;
+    // this determines what is & what isn't in the depth map. Make sure all objects wanted are in here
+    glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+
+    // having light source's position looking at the scenes center
+    glm::mat4 lightView = glm::lookAt(
+        glm::vec3(-2.0f, 4.0f, -1.0f), // light world pos
+        glm::vec3( 0.0f, 0.0f,  0.0f), // where its looking
+        glm::vec3( 0.0f, 1.0f,  0.0f)  // up direction
+    ); 
+
+    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+    return lightSpaceMatrix; 
+}
+
+void render_scene(
+    Shader skybox_shader,
+    unsigned int skybox_texture,
+    unsigned int skyboxVAO,
+    Shader shader,
+    unsigned int planeVAO,
+    unsigned int cube_texture,
+    unsigned int cubeVAO,
+    bool is_shadow_pass
+) {
+    // skybox shouldn't be calc'd in depthpass
+    if (!is_shadow_pass) {
+        // we want to set up skybox first
+        render_skybox(skybox_shader, skybox_texture, skyboxVAO);
+        // and then draw the rest of the scene on top of it
+    }
+
+    shader.use();
+    glm::mat4 model = glm::mat4(1.0f);
+    glm::mat4 view = camera.getView();
+    glm::mat4 projection = camera.getProjection();
+    shader.setMat4("view", view);
+    shader.setMat4("projection", projection);
+    
+    // floor
+    glBindVertexArray(planeVAO);
+    glBindTexture(GL_TEXTURE_2D, cube_texture);
+    model = glm::mat4(1.0f);
+    shader.setMat4("model", model);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    // reset
+    glActiveTexture(GL_TEXTURE0);
+    // cubes
+    glBindVertexArray(cubeVAO);
+    glBindTexture(GL_TEXTURE_2D, cube_texture); 	
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
+    model = glm::scale(model, glm::vec3(0.5f));
+    shader.setMat4("model", model);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(2.0f, 0.0f, 1.0));
+    model = glm::scale(model, glm::vec3(0.5f));
+    shader.setMat4("model", model);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 2.0));
+    model = glm::rotate(model, glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
+    model = glm::scale(model, glm::vec3(0.25));
+    shader.setMat4("model", model);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+}
+
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
