@@ -31,6 +31,9 @@ void render_scene(
     bool is_shadow_pass
 );
 glm::mat4 configure_shader_and_matrices();
+
+// shadow setup
+glm::vec3 light_pos = glm::vec3(-2.0f, 4.0f, -1.0f);
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
@@ -92,7 +95,7 @@ int main()
 
     // build and compile shaders
     // -------------------------
-    Shader shader("model_loading");
+    Shader shader("shadow_renderer");
     Shader simple_depth("simple_depth");
     Shader skybox_shader("cubemap");
     Shader twod_fbo_texture("render_fbo_2d");
@@ -251,7 +254,7 @@ int main()
     // create shadowmaps framebuffer depth buffer
 
     // create depth texture
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+    const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
     unsigned int depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);  
 
@@ -262,8 +265,10 @@ int main()
                 SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);  
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);  
 
     // lets attach it to framebuffer's depth buffer
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
@@ -303,7 +308,8 @@ int main()
     // shader configuration
     // --------------------
     shader.use();
-    shader.setInt("texture_diffuse1", 0);
+    shader.setInt("diffuseTexture", 0);
+    shader.setInt("shadowMap", 1);
     twod_fbo_texture.use();
     twod_fbo_texture.setInt("depthMap", 0);
     // render loop
@@ -326,7 +332,10 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // render to depth map
+        glCullFace(GL_FRONT);
+
         simple_depth.use();
+        light_space_matrix = configure_shader_and_matrices();
         simple_depth.setMat4("lightSpaceMatrix", light_space_matrix);
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
@@ -343,6 +352,8 @@ int main()
                 true
             );
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glCullFace(GL_BACK);        glCullFace(GL_FRONT);
+
 
         // DEBUG_RENDER_DEPTH_FROM_LIGHT
         // glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
@@ -359,20 +370,28 @@ int main()
         
 
         // // render scene as normal
-        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        // glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-        // // ConfigureShaderAndMatrices();
-        // // glBindTexture(GL_TEXTURE_2D, depthMap);
-        // render_scene(
-        //     skybox_shader,
-        //     skybox_texture,
-        //     skyboxVAO,
-        //     shader,
-        //     planeVAO,
-        //     cube_texture,
-        //     cubeVAO,
-        //     false
-        // );
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        shader.use();
+        shader.setMat4("lightSpaceMatrix", light_space_matrix);
+        
+        shader.setVec3("lightPos", light_pos);
+        shader.setVec3("viewPos", camera.camera_pos);
+        // ConfigureShaderAndMatrices();
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, depth_map);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, cube_texture);
+        render_scene(
+            skybox_shader,
+            skybox_texture,
+            skyboxVAO,
+            shader,
+            planeVAO,
+            cube_texture,
+            cubeVAO,
+            false
+        );
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -398,7 +417,7 @@ glm::mat4 configure_shader_and_matrices() {
 
     // having light source's position looking at the scenes center
     glm::mat4 lightView = glm::lookAt(
-        glm::vec3(-2.0f, 4.0f, -1.0f), // light world pos
+        light_pos, // light world pos
         glm::vec3( 0.0f, 0.0f,  0.0f), // where its looking
         glm::vec3( 0.0f, 1.0f,  0.0f)  // up direction
     ); 
