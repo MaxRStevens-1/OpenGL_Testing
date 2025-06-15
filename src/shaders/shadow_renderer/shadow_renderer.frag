@@ -36,15 +36,19 @@ float ShadowCalculation(
     float shadow = 0.0;
     vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
 
+    // done out of laziness, so i don't have to calc # to divide shadow by 
+    float count = 0;
+
     for(int x = -1; x <= 1; ++x)
     {
         for(int y = -1; y <= 1; ++y)
         {
             float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
-            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;        
+            shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+            count++;        
         }    
     }
-    shadow /= 9.0;
+    shadow /= count;
 
     return shadow;
 }
