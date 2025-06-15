@@ -41,7 +41,7 @@ void set_shadow_cube_shader(GeoShader cube_shader);
 // shadow setup
 glm::vec3 light_pos = glm::vec3(0.0f, 0.0f, 0.0f);
 // settings
-const unsigned int SCR_WIDTH = 800;
+const unsigned int SCR_WIDTH = 900;
 const unsigned int SCR_HEIGHT = 600;
 const int MSSA_SAMPLES = 4;  
 // camera
@@ -50,7 +50,9 @@ float lastX = (float)SCR_WIDTH  / 2.0;
 float lastY = (float)SCR_HEIGHT / 2.0;
 bool firstMouse = true;
 
-const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
+
+bool move_light = true;
 
 const float near = 1.0f;
 const float far = 25.0f;
@@ -360,6 +362,8 @@ int main()
     render_depth_cube.setInt("depthMap", 0);
     // render loop
     // -----------
+
+    float light_moved_frames = 0;
     while(!glfwWindowShouldClose(window))
     {
         // per-frame time logic
@@ -373,7 +377,11 @@ int main()
         processInput(window);
 
         // lets change light pos over time?
-        light_pos.z = static_cast<float>(sin(glfwGetTime() * 0.5) * 3.0);
+        if (move_light) {
+            light_pos.z = static_cast<float>(sin(light_moved_frames * 0.01) * 3.0);
+            light_pos.y = static_cast<float>(cos(light_moved_frames * 0.01) * 3.0);
+            light_moved_frames++;
+        }
 
         // render
         // ------
@@ -665,6 +673,10 @@ void processInput(GLFWwindow *window) {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     } 
+
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+        move_light = !move_light;
+    }
 
     camera.processInputForCamera(window);
 }
