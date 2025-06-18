@@ -77,5 +77,6 @@
         "xutility": "cpp",
         "regex": "cpp"
     },
-    "cmake.sourceDirectory": "C:/Users/maxws/projects/OpenGL_Testing/include/glm"
+    "cmake.sourceDirectory": "C:/Users/maxws/projects/OpenGL_Testing/include/glm",
+    "C_Cpp.errorSquiggles": "disabled"
 }

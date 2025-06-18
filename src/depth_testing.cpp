@@ -11,6 +11,7 @@
 #include "ShaderUtils.h"
 #include "Shader.h"
 
+#include <vector>
 #include <iostream>
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -35,6 +36,11 @@ void render_scene_cube_shadows(
     unsigned int cube_texture,
     unsigned int cubeVAO
 );
+std::vector<float> calculate_tangent_and_bitangent_for_vert(
+    std::vector<float> vertices,
+    int indicies_per_point,
+    int num_triangles
+);
 glm::mat4 configure_shader_and_matrices();
 void set_shadow_cube_shader(GeoShader cube_shader);
 
@@ -53,6 +59,7 @@ bool firstMouse = true;
 const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
 
 bool move_light = true;
+bool do_bump = true;
 
 const float near = 1.0f;
 const float far = 25.0f;
@@ -115,7 +122,9 @@ int main()
     // new shaders
     GeoShader depth_cube("depth_cubemap");
     Shader render_depth_cube("render_depth_cube");
-    Shader cube_shadow_map("cube_shadow_map");
+    Shader normal_shadow_map("normal_mapping");
+    // Shader normal_shadow_map("cube_shadow_map");
+    
     Shader light_source_shader("lightSource");
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
@@ -173,16 +182,16 @@ int main()
     float cube_vertices[] = {
         // back face
         -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-            1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-            1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
-            1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+         1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+         1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
+         1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
         -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
         -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
         // front face
         -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-            1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
-            1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-            1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+         1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
+         1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+         1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
         -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
         -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
         // left face
@@ -193,24 +202,24 @@ int main()
         -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
         -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
         // right face
-            1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-            1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-            1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
-            1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-            1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-            1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
+         1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+         1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+         1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
+         1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+         1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+         1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
         // bottom face
         -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-            1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
-            1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-            1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+         1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
+         1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+         1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
         -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
         -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
         // top face
         -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-            1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-            1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
-            1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+         1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+         1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
+         1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
         -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
         -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
     };
@@ -225,19 +234,44 @@ int main()
          25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f			
     };
 
+
+    std::vector<float> cube_verts {cube_vertices, cube_vertices + std::size(cube_vertices)};
+    std::vector<float> new_cube_vec = calculate_tangent_and_bitangent_for_vert(
+        cube_verts,
+        8,
+        12
+    );
+
+    const int cube_vert_size = new_cube_vec.size();
+
+    float new_cube_verts[cube_vert_size];
+    std::copy(new_cube_vec.begin(), new_cube_vec.end(), new_cube_verts);
+
+    // for (int i = 0; i <new_cube_vec.size(); i++) {
+    //     if (i % 14 == 0) {
+    //         std::cout << std::endl;
+    //     } 
+    //     std::cout << new_cube_verts[i] << ", ";
+    // }
+    // std::cout << std::endl;
+
     // cube VAO
     unsigned int cubeVAO, cubeVBO;
     glGenVertexArrays(1, &cubeVAO);
     glGenBuffers(1, &cubeVBO);
     glBindVertexArray(cubeVAO);
     glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), &cube_vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, cube_vert_size * sizeof(float), new_cube_verts, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
     glBindVertexArray(0);
     // plane VAO
     unsigned int planeVAO, planeVBO;
@@ -266,7 +300,8 @@ int main()
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     // load textures
     // -------------
-    unsigned int cube_texture  = loadTexture("./textures/advanced/wood.png");
+    unsigned int cube_texture  = loadTexture("./textures/advanced/brickwall.jpg");
+    unsigned int cube_bump = loadTexture("./textures/advanced/brickwall_normal.jpg");
     
     // create shadowmaps framebuffer depth buffer
 
@@ -301,28 +336,7 @@ int main()
     glDrawBuffer(GL_NONE);
     glReadBuffer(GL_NONE);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);  
-    // create depth texture
-    // const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
 
-
-    // unsigned int depth_map;
-    // glGenTextures(1, &depth_map);
-    // glBindTexture(GL_TEXTURE_2D, depth_map);
-    // glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, 
-    //             SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-    // float borderColor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    // glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);  
-
-    // // lets attach it to framebuffer's depth buffer
-    // glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    // glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depth_map, 0);
-    // glDrawBuffer(GL_NONE);
-    // glReadBuffer(GL_NONE);
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);  
 
     // load cubemap
     // -------------
@@ -354,9 +368,10 @@ int main()
 
     // shader configuration
     // --------------------
-    cube_shadow_map.use();
-    cube_shadow_map.setInt("diffuseTexture", 0);
-    cube_shadow_map.setInt("depthMap", 1);
+    normal_shadow_map.use();
+    normal_shadow_map.setInt("diffuseTexture", 0);
+    normal_shadow_map.setInt("depthMap", 1);
+    normal_shadow_map.setInt("normalMap", 2);
     // shader.setInt("shadowMap", 1);
     render_depth_cube.use();
     render_depth_cube.setInt("depthMap", 0);
@@ -428,22 +443,26 @@ int main()
         // // render scene as normal
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-        cube_shadow_map.use();
-        cube_shadow_map.setVec3("lightPos", light_pos);
-        cube_shadow_map.setVec3("viewPos", camera.camera_pos);
-        cube_shadow_map.setFloat("far_plane", far);
+        normal_shadow_map.use();
+        normal_shadow_map.setVec3("lightPos", light_pos);
+        normal_shadow_map.setVec3("viewPos", camera.camera_pos);
+        normal_shadow_map.setFloat("far_plane", far);
+        normal_shadow_map.setBool("do_normal_map", do_bump);
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, cube_texture);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_CUBE_MAP, depth_cubemap);        
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, cube_bump);
 
         render_scene_cube_shadows(
-            cube_shadow_map,
+            normal_shadow_map,
             cube_texture,
             cubeVAO
         );
 
+        // ntoe we have to do this last, as otherwise the light would block itself
         // now im going to go simple & draw a light source box
         light_source_shader.use();
         glm::mat4 view = camera.getView();
@@ -471,6 +490,107 @@ int main()
 
     glfwTerminate();
     return 0;
+}
+
+struct vertex {
+    float x;
+    float y;
+    float z;
+    float nx;
+    float ny;
+    float nz;
+    float u;
+    float v;
+
+    std::vector<float> getList() {
+        return {x,y,z,nx,ny,nz,u,v};
+    }
+
+};
+
+vertex get_vertex_from_index(std::vector<float> vertices, int index) {
+    vertex vert;
+    vert.x = vertices[index];
+    vert.y = vertices[index+1];
+    vert.z = vertices[index+2];
+    vert.nx = vertices[index+3];
+    vert.ny = vertices[index+4];
+    vert.nz = vertices[index+5];
+    vert.u = vertices[index+6];
+    vert.v = vertices[index+7];
+    // };
+    return vert;
+}
+
+std::vector<float> calculate_tangent_and_bitangent_for_vert(
+    std::vector<float> vertices,
+    int indicies_per_point,
+    int num_triangles
+) {
+
+    std::vector<float> new_vertices;
+
+    
+    for (int i = 0; i < num_triangles; i++) {
+        // this should give me the ind of the current triangle
+        // so in a thing with 36 triangles
+        // 0*8*3 = 0
+        // 1 *8*3 =24
+        glm::vec3 tangent = glm::vec3(0);
+        glm::vec3 bitangent = glm::vec3(0);
+        int current_index = i*indicies_per_point*3;
+
+        vertex v0 = get_vertex_from_index(vertices, current_index);
+        vertex v1 = get_vertex_from_index(vertices, current_index + (indicies_per_point*1)); 
+        vertex v2 = get_vertex_from_index(vertices, current_index + (indicies_per_point*2)); 
+
+        glm::vec3 delta_pos1 = glm::vec3(v1.x, v1.y, v1.z) - glm::vec3(v0.x, v0.y, v0.z);
+        glm::vec3 delta_pos2 = glm::vec3(v2.x, v2.y, v2.z) - glm::vec3(v0.x, v0.y, v0.z);
+
+        glm::vec2 delta_uv1 = glm::vec2(v1.u, v1.v) - glm::vec2(v0.u, v0.v);
+        glm::vec2 delta_uv2 = glm::vec2(v2.u, v2.v) - glm::vec2(v0.u, v0.v);
+
+        float r = 1.0 / (delta_uv1.x * delta_uv2.y - delta_uv1.y * delta_uv2.x);
+        
+        tangent += (delta_pos1 * delta_uv2.y - delta_pos2 * delta_uv1.y) * r;
+        bitangent += (delta_pos2 * delta_uv1.x - delta_pos1 * delta_uv2.x) * r; 
+
+        // lets add everything to new list
+        std::vector<float> local_list = v0.getList();
+        new_vertices.insert(new_vertices.end(), local_list.begin(), local_list.end());
+        new_vertices.push_back(tangent.x);
+        new_vertices.push_back(tangent.y);
+        new_vertices.push_back(tangent.z);
+
+        new_vertices.push_back(bitangent.x);
+        new_vertices.push_back(bitangent.y);
+        new_vertices.push_back(bitangent.z);
+
+        local_list = v1.getList();
+        new_vertices.insert(new_vertices.end(), local_list.begin(), local_list.end());
+
+        new_vertices.push_back(tangent.x);
+        new_vertices.push_back(tangent.y);
+        new_vertices.push_back(tangent.z);
+
+        new_vertices.push_back(bitangent.x);
+        new_vertices.push_back(bitangent.y);
+        new_vertices.push_back(bitangent.z);
+
+        local_list = v2.getList();
+        new_vertices.insert(new_vertices.end(), local_list.begin(), local_list.end());        
+        new_vertices.push_back(tangent.x);
+        new_vertices.push_back(tangent.y);
+        new_vertices.push_back(tangent.z);
+
+        new_vertices.push_back(bitangent.x);
+        new_vertices.push_back(bitangent.y);
+        new_vertices.push_back(bitangent.z);
+    }
+
+    std::cout << "vertices went from size " << vertices.size() << " to " << new_vertices.size() << std::endl; 
+
+    return new_vertices;
 }
 
 void set_shadow_cube_shader(GeoShader cube_shader) {
@@ -676,6 +796,11 @@ void processInput(GLFWwindow *window) {
 
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
         move_light = !move_light;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS) {
+        do_bump = !do_bump;
+        std::cout << "setting bump to: " << do_bump << std::endl;
     }
 
     camera.processInputForCamera(window);
