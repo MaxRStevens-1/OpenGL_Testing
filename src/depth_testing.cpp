@@ -694,12 +694,12 @@ void render_scene_cube_shadows(
     shader.setMat4("model", model);
     glBindVertexArray(cubeVAO);
     // note that we disable culling here since we render 'inside' the cube instead of the usual 'outside' which throws off the normal culling methods.
-    // glDisable(GL_CULL_FACE); 
+    // glEnable(GL_CULL_FACE); 
     // A small little hack to invert normals when drawing cube from the inside so lighting still works.
     shader.setBool("reverse_normals", true);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     shader.setBool("reverse_normals", false); // and of course disable it
-    // glEnable(GL_CULL_FACE);
+    // glDisable(GL_CULL_FACE);
     // cubes
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(4.0f, -3.5f, 0.0));
