@@ -38,10 +38,13 @@ void main() {
 
 
     vs_out.TexCoords = aTexCoords;
-    
-    vec3 T = normalize(vec3(model * vec4(aTangent, 0.0)));
-    vec3 B = normalize(vec3(model * vec4(aBitangent, 0.0)));
-    vec3 N = normalize(vec3(model * vec4(normal_to_use, 0.0)));
+    // correct normal transform as learned in previous tutorials here
+
+    mat3 normalMatrix = transpose(inverse(mat3(model))); 
+
+    vec3 T = normalize(vec3(normalMatrix * aTangent));
+    vec3 B = normalize(vec3(normalMatrix * aBitangent));
+    vec3 N = normalize(vec3(normalMatrix * normal_to_use));
 
     mat3 TBN = transpose(mat3(T, B, N));
     vs_out.TangentLightPos = TBN * lightPos;
