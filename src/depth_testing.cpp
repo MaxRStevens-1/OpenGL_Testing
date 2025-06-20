@@ -122,7 +122,7 @@ int main()
     // new shaders
     GeoShader depth_cube("depth_cubemap");
     Shader render_depth_cube("render_depth_cube");
-    Shader normal_shadow_map("normal_mapping");
+    Shader normal_shadow_map("normal_mapping_tan_light");
     // Shader normal_shadow_map("cube_shadow_map");
     
     Shader light_source_shader("lightSource");
@@ -725,7 +725,7 @@ void render_scene_cube_shadows(
 
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(-1.5f, 2.0f, -3.0));
-    model = glm::rotate(model, glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
+    model = glm::rotate(model, (float)glfwGetTime() * -1.0f, glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
     model = glm::scale(model, glm::vec3(0.75f));
     shader.setMat4("model", model);
     glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -798,9 +798,13 @@ void processInput(GLFWwindow *window) {
         move_light = !move_light;
     }
 
-    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS) {
-        do_bump = !do_bump;
-        std::cout << "setting bump to: " << do_bump << std::endl;
+    if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
+        do_bump = false;
+        std::cout << "setting bump to: false" << std::endl;
+    }
+    if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
+        do_bump = true;
+        std::cout << "setting bump to: true" << std::endl;
     }
 
     camera.processInputForCamera(window);

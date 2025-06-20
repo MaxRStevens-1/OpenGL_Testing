@@ -5,7 +5,9 @@ in VS_OUT {
     vec3 FragPos;
     vec3 Normal;
     vec2 TexCoords;
-    mat3 TBN;
+    vec3 TangentLightPos;
+    vec3 TangentViewPos;
+    vec3 TangentFragPos;
 } fs_in;
 
 uniform sampler2D diffuseTexture;
@@ -29,9 +31,17 @@ vec3 sampleOffsetDirections[20] = vec3[] (
 );
 
 float ShadowCalculation(
-    vec3 fragPos
+    // vec3 frag_pos,
+    // vec3 light_pos,
+    // vec3 view_pos
 ) {
-    vec3 fragToLight = fragPos - lightPos; 
+    // !! NOTE !!
+    // you NEED the non TBN stuff to do shadow calc
+    vec3 frag_pos = fs_in.FragPos;
+    vec3 view_pos = viewPos;
+    vec3 light_pos = lightPos;
+
+    vec3 fragToLight = frag_pos - light_pos; 
     // normalized depth vaslue between light source & closet fragment
     float closestDepth = texture(depthMap, fragToLight).r;
 
@@ -50,7 +60,7 @@ float ShadowCalculation(
     float shadow = 0.0;
     float bias   = 0.15;
     int samples  = 20;
-    float viewDistance = length(viewPos - fragPos);
+    float viewDistance = length(view_pos - frag_pos);
     float diskRadius = (1.0 + (viewDistance / far_plane)) / 25.0;  
     for(int i = 0; i < samples; ++i)
     {
@@ -67,6 +77,9 @@ float ShadowCalculation(
 void main() {           
     vec3 color = texture(diffuseTexture, fs_in.TexCoords).rgb;
     vec3 normal;
+    vec3 frag_pos;
+    vec3 light_pos;
+    vec3 view_pos;
     if (do_normal_map) {
         // obtain normal from normal map in range [0,1]
         normal = texture(normalMap, fs_in.TexCoords).rgb;
@@ -74,9 +87,15 @@ void main() {
         normal = normal * 2.0 - 1.0;   
 
         // use TBN to make sure its guchi
-        normal = normalize(fs_in.TBN * normal);  
+        // normal = normalize(fs_in.TBN * normal);  
+        frag_pos = fs_in.TangentFragPos;
+        light_pos = fs_in.TangentLightPos;
+        view_pos = fs_in.TangentFragPos;
     } else {
         normal = normalize(fs_in.Normal);
+        frag_pos = fs_in.FragPos;
+        light_pos = lightPos;
+        view_pos = viewPos;
     }
 
     // FragColor = vec4(normal, 1.0);
@@ -85,18 +104,19 @@ void main() {
     // ambient
     vec3 ambient = 0.3 * color;
     // diffuse
-    vec3 lightDir = normalize(lightPos - fs_in.FragPos);
+    vec3 lightDir = normalize(light_pos - frag_pos);
+
     float diff = max(dot(lightDir, normal), 0.0);
     vec3 diffuse = diff * lightColor;
     // specular
-    vec3 viewDir = normalize(viewPos - fs_in.FragPos);
+    vec3 viewDir = normalize(view_pos - frag_pos);
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = 0.0;
     vec3 halfwayDir = normalize(lightDir + viewDir);  
     spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
     vec3 specular = spec * lightColor;    
     // calculate shadow
-    float shadow = ShadowCalculation(fs_in.FragPos);                      
+    float shadow = ShadowCalculation();                                            
     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;    
     
     FragColor = vec4(lighting, 1.0);
