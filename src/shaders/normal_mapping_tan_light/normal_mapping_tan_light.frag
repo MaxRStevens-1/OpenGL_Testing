@@ -85,7 +85,8 @@ void main() {
         normal = texture(normalMap, fs_in.TexCoords).rgb;
         // transform normal vector to range [-1,1]
         normal = normal * 2.0 - 1.0;   
-
+        // FragColor = vec4(normal, 1.0);
+        // return;
         // use TBN to make sure its guchi
         // normal = normalize(fs_in.TBN * normal);  
         frag_pos = fs_in.TangentFragPos;
@@ -97,7 +98,8 @@ void main() {
         light_pos = lightPos;
         view_pos = viewPos;
     }
-    
+    // FragColor = vec4(normal * 0.5 + 0.5, 1.0);
+    // return;
     // FragColor = vec4(normal, 1.0);
     // return;
     vec3 lightColor = vec3(0.3);
@@ -113,8 +115,15 @@ void main() {
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = 0.0;
     vec3 halfwayDir = normalize(lightDir + viewDir);  
-    spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
+    spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
+    spec = clamp(spec, 0.0, 1.0);
+
     vec3 specular = spec * lightColor;    
+
+    // vec3 lightDir = normalize(light_pos - frag_pos);
+    // float NdotL = dot(normal, lightDir);
+    // FragColor = vec4(vec3(NdotL * 0.5 + 0.5), 1.0);    
+    // return;
     // calculate shadow
     float shadow = ShadowCalculation();                                            
     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;    
