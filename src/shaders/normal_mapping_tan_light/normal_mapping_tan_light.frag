@@ -97,7 +97,7 @@ void main() {
         light_pos = lightPos;
         view_pos = viewPos;
     }
-
+    
     // FragColor = vec4(normal, 1.0);
     // return;
     vec3 lightColor = vec3(0.3);
