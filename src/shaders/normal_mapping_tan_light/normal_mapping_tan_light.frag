@@ -90,7 +90,7 @@ void main() {
         // normal = normalize(fs_in.TBN * normal);  
         frag_pos = fs_in.TangentFragPos;
         light_pos = fs_in.TangentLightPos;
-        view_pos = fs_in.TangentFragPos;
+        view_pos = fs_in.TangentViewPos;
     } else {
         normal = normalize(fs_in.Normal);
         frag_pos = fs_in.FragPos;
