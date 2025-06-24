@@ -122,8 +122,9 @@ int main()
     // new shaders
     GeoShader depth_cube("depth_cubemap");
     Shader render_depth_cube("render_depth_cube");
-    Shader normal_shadow_map("normal_mapping_tan_light");
-    // Shader normal_shadow_map("cube_shadow_map");
+    Shader normal_shadow_map("dis_n_norm_mapping");
+    // Shader normal_shadow_map("normal_mapping_tan_light");    
+
     
     Shader light_source_shader("lightSource");
     // set up vertex data (and buffer(s)) and configure vertex attributes
@@ -300,8 +301,9 @@ int main()
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     // load textures
     // -------------
-    unsigned int cube_texture  = loadTexture("./textures/advanced/brickwall.jpg");
-    unsigned int cube_bump = loadTexture("./textures/advanced/brickwall_normal.jpg");
+    unsigned int cube_texture  = loadTexture("./textures/advanced/bricks2_diff.jpg");
+    unsigned int cube_norm = loadTexture("./textures/advanced/bricks2_normal.jpg");
+    unsigned int cube_disp = loadTexture("./textures/advanced/bricks2_disp.jpg");
     
     // create shadowmaps framebuffer depth buffer
 
@@ -372,6 +374,8 @@ int main()
     normal_shadow_map.setInt("diffuseTexture", 0);
     normal_shadow_map.setInt("depthMap", 1);
     normal_shadow_map.setInt("normalMap", 2);
+    normal_shadow_map.setInt("depthTextureMap", 3);
+    normal_shadow_map.setFloat("height_scale", 0.1f);
     // shader.setInt("shadowMap", 1);
     render_depth_cube.use();
     render_depth_cube.setInt("depthMap", 0);
@@ -454,7 +458,9 @@ int main()
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_CUBE_MAP, depth_cubemap);        
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, cube_bump);
+        glBindTexture(GL_TEXTURE_2D, cube_norm);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, cube_disp);
 
         render_scene_cube_shadows(
             normal_shadow_map,
