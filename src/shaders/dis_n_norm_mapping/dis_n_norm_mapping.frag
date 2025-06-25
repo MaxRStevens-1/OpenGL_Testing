@@ -127,7 +127,7 @@ void main() {
     // use TBN to make sure its guchi
     frag_pos = fs_in.TangentFragPos;
     light_pos = fs_in.TangentLightPos;
-    view_pos = fs_in.TangentFragPos;
+    view_pos = fs_in.TangentViewPos;
 
     vec3 viewDir   = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
     vec2 texCoords = ParallaxMapping(fs_in.TexCoords,  viewDir);
@@ -156,7 +156,8 @@ void main() {
     vec3 reflectDir = reflect(-lightDir, normal);
     float spec = 0.0;
     vec3 halfwayDir = normalize(lightDir + viewDir);  
-    spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
+    spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
+    spec = clamp(spec, 0.0, 1.0);    
     vec3 specular = spec * lightColor;    
     // calculate shadow
     float shadow = ShadowCalculation();                                            
