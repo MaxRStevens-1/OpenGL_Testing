@@ -2,7 +2,7 @@
 
 out vec4 FragColor;
 
-uniform vec3 lightColor = vec3(0.3);
+uniform vec3 lightColor = vec3(10.0f);
 
 void main() {
     // set so object color varies with lightsource color.

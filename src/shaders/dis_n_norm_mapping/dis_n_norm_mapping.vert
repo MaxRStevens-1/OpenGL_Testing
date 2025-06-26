@@ -32,6 +32,7 @@ void main() {
     vec3 normal_to_use = aNormal;
     if (reverse_normals) {
         normal_to_use *= -1;
+        
     }
     
     vs_out.Normal = transpose(inverse(mat3(model))) * normal_to_use;    

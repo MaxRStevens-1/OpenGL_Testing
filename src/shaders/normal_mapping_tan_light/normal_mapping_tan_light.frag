@@ -74,7 +74,9 @@ float ShadowCalculation(
     return shadow;
 }
 
-void main() {           
+void main() {
+    float gamma = 2.2;
+
     vec3 color = texture(diffuseTexture, fs_in.TexCoords).rgb;
     vec3 normal;
     vec3 frag_pos;
@@ -85,8 +87,6 @@ void main() {
         normal = texture(normalMap, fs_in.TexCoords).rgb;
         // transform normal vector to range [-1,1]
         normal = normal * 2.0 - 1.0;   
-        // FragColor = vec4(normal, 1.0);
-        // return;
         // use TBN to make sure its guchi
         // normal = normalize(fs_in.TBN * normal);  
         frag_pos = fs_in.TangentFragPos;
@@ -98,11 +98,7 @@ void main() {
         light_pos = lightPos;
         view_pos = viewPos;
     }
-    // FragColor = vec4(normal * 0.5 + 0.5, 1.0);
-    // return;
-    // FragColor = vec4(normal, 1.0);
-    // return;
-    vec3 lightColor = vec3(0.3);
+    vec3 lightColor = vec3(10.0f);
     // ambient
     vec3 ambient = 0.3 * color;
     // diffuse
