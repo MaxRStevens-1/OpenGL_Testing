@@ -19,6 +19,16 @@ struct depthMapFBO_cubemap {
     unsigned int depth_cubemap;
 };
 
+struct PointLight {
+    glm::vec3 position;
+
+    glm::vec3 color;
+    float intensity;
+
+    float constant;
+    float linear;
+    float quadratic;
+};
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -50,14 +60,20 @@ std::vector<float> calculate_tangent_and_bitangent_for_vert(
 );
 // glm::mat4 configure_shader_and_matrices();
 void set_shadow_cube_shader(GeoShader cube_shader, int current_light);
+void set_up_lights();
 depthMapFBO_cubemap create_depth_cubemap();
+void set_shader_from_light(PointLight light, int index, Shader shader);
 // lights
 const int NUM_LIGHTS = 3;
 
 // shadow setup
 glm::vec3 light_pos   = glm::vec3(0.0f, 0.0f, 0.0f);
-glm::vec3 light_pos_2 = glm::vec3(2.0f, 2.0f, 2.0f);
-glm::vec3 light_pos_3 = glm::vec3(1.0f, 1.0f, 1.0f);
+glm::vec3 light_pos_2 = glm::vec3(0.2f, 0.2f, 0.2f);
+glm::vec3 light_pos_3 = glm::vec3(-0.2f, -0.2f, -0.2f);
+
+PointLight light_1;
+PointLight light_2;
+PointLight light_3;
 
 // settings
 const unsigned int SCR_WIDTH = 900;
@@ -81,6 +97,9 @@ const float far = 50.0f;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+
+
+
 
 int main()
 {
@@ -440,6 +459,11 @@ int main()
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     // loading const data
     // ------------------
+
+    // set up lights
+    set_up_lights();
+
+
     // lets grab some const mat4's
     // shader configuration
     // --------------------
@@ -474,8 +498,8 @@ int main()
 
         // lets change light pos over time?
         if (move_light) {
-            light_pos.z = static_cast<float>(sin(light_moved_frames * 0.01) * 3.0);
-            light_pos.y = static_cast<float>(cos(light_moved_frames * 0.01) * 3.0);
+            light_1.position.z = static_cast<float>(sin(light_moved_frames * 0.01) * 3.0);
+            light_1.position.y = static_cast<float>(cos(light_moved_frames * 0.01) * 3.0);
             light_moved_frames++;
         }
 
@@ -567,9 +591,23 @@ int main()
         }
 
         normal_shadow_map.use();
-        normal_shadow_map.setVec3("lightPos[0]", light_pos);
-        normal_shadow_map.setVec3("lightPos[1]", light_pos_2);
-        normal_shadow_map.setVec3("lightPos[2]", light_pos_3);
+
+        for (int i = 0; i < NUM_LIGHTS; i++) {
+            PointLight current_light;
+
+            if (i == 0) {
+                current_light = light_1;
+            } else if (i == 1) {
+                current_light = light_2;
+            } else if (i == 2) {
+                current_light = light_3;
+            }
+
+            set_shader_from_light(current_light, i, normal_shadow_map);
+        }
+        // normal_shadow_map.setVec3("lightPos[0]", light_1.position);
+        // normal_shadow_map.setVec3("lightPos[1]", light_2.position);
+        // normal_shadow_map.setVec3("lightPos[2]", light_3.position);
         normal_shadow_map.setVec3("viewPos", camera.camera_pos);
         normal_shadow_map.setFloat("far_plane", far);
         normal_shadow_map.setBool("do_normal_map", do_bump);
@@ -596,23 +634,28 @@ int main()
         // ntoe we have to do this last, as otherwise the light would block itself
         // now im going to go simple & draw a light source box
         light_source_shader.use();
+
+        glm::mat4 view = camera.getView();
+        glm::mat4 projection = camera.getProjection();
+
+        light_source_shader.setMat4("view", view);
+        light_source_shader.setMat4("projection", projection);
         for (int i = 0; i < NUM_LIGHTS; i++) {
-            glm::vec3 current_light_pos;
+            PointLight current_light;
 
             if (i == 0) {
-                current_light_pos = light_pos;
+                current_light = light_1;
             } else if (i == 1) {
-                current_light_pos = light_pos_2;
+                current_light = light_2;
             } else if (i == 2) {
-                current_light_pos = light_pos_3;
+                current_light = light_3;
             }
 
-            glm::mat4 view = camera.getView();
-            glm::mat4 projection = camera.getProjection();
+
             glm::mat4 model = glm::mat4(1.0f);
-            light_source_shader.setMat4("view", view);
-            light_source_shader.setMat4("projection", projection);
-            model = glm::translate(model, current_light_pos);
+            glm::vec3 temp_color = (current_light.color * current_light.intensity);
+            light_source_shader.setVec3("lightColor", temp_color);
+            model = glm::translate(model, current_light.position);
             model = glm::scale (model, glm::vec3(0.1));
             light_source_shader.setMat4("model", model);
             glBindVertexArray(skyboxVAO);
@@ -758,11 +801,11 @@ void set_shadow_cube_shader(GeoShader cube_shader, int current_light) {
 
     glm::vec3 current_light_pos;
     if (current_light == 0) {
-        current_light_pos = light_pos;
+        current_light_pos = light_1.position;
     } else if (current_light == 1) {
-        current_light_pos = light_pos_2;
+        current_light_pos = light_2.position;
     } else if (current_light == 2) {
-        current_light_pos = light_pos_3;
+        current_light_pos = light_3.position;
     }
 
     // look at each face of the cube form light pos
@@ -998,6 +1041,53 @@ depthMapFBO_cubemap create_depth_cubemap() {
     return return_obj;
 }
 
+std::string get_light_str(int index) {
+    return "lights[" + std::to_string(index) + "]."; 
+}
+
+void set_shader_from_light(PointLight light, int index, Shader shader) {
+    shader.setVec3(get_light_str(index) + "position", light.position);
+
+    shader.setVec3(get_light_str(index) + "color", light.color);
+    shader.setFloat(get_light_str(index) + "intensity", light.intensity);
+    
+
+    shader.setFloat(get_light_str(index) + "constant", light.constant);
+    shader.setFloat(get_light_str(index) + "linear", light.linear);
+    shader.setFloat(get_light_str(index) + "quadratic", light.quadratic);
+
+}
+
+void set_up_lights() {
+    // light 1
+    light_1.position = light_pos;
+    light_1.linear = 0.07f;
+    light_1.quadratic = 0.017f;
+    light_1.color = glm::vec3(1.0f);
+    light_1.intensity = 20.0f;
+    // light_1.diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
+    // light_1.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+
+    // light 2
+    light_2.position = light_pos_2;
+    light_2.linear = 0.07f;
+    light_2.quadratic = 0.017f;
+    light_2.color = glm::vec3(1.0f);
+    light_2.intensity = 10.0f;
+
+    // light_2.diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
+    // light_2.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+
+    // light 3
+    light_3.position = light_pos_3;
+    light_3.linear = 0.07f;
+    light_3.quadratic = 0.017f;
+    light_3.color = glm::vec3(1.0f);
+    light_3.intensity = 5.0f;
+    // light_3.diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
+    // light_3.specular = glm::vec3(1.0f, 1.0f, 1.0f);
+
+}
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------

@@ -20,11 +20,22 @@ out VS_OUT {
     vec3 TangentFragPos;
 } vs_out;
 
+struct PointLight {
+    vec3 position;
+    
+    vec3 color;
+    float intensity;
+
+    float constant;
+    float linear;
+    float quadratic;
+};
+uniform PointLight lights[NR_LIGHTS];
+
 uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;
 
-uniform vec3[NR_LIGHTS] lightPos;
 uniform vec3 viewPos;
 
 uniform bool reverse_normals;
@@ -57,7 +68,7 @@ void main() {
     // mat3 TBN = transpose(mat3(T, B, N));
     mat3 TBN = mat3(T, B, N);
     for (int i = 0; i < NR_LIGHTS; i++) {
-        vs_out.TangentLightPos[i] = TBN * lightPos[i];
+        vs_out.TangentLightPos[i] = TBN * lights[i].position;
     }
     vs_out.TangentViewPos  = TBN * viewPos;
     vs_out.TangentFragPos  = TBN * frag_pos;

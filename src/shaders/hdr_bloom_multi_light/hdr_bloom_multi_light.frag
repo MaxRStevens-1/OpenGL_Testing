@@ -3,7 +3,6 @@ out vec4 FragColor;
 
 #define NR_LIGHTS 3
 
-
 in VS_OUT {
     vec3 FragPos;
     vec3 Normal;
@@ -19,8 +18,18 @@ uniform samplerCube depthMap_2;
 uniform samplerCube depthMap_3;
 uniform sampler2D normalMap;  
 
+struct PointLight {
+    vec3 position;
+    
+    vec3 color;
+    float intensity;
 
-uniform vec3[NR_LIGHTS] lightPos;
+    float constant;
+    float linear;
+    float quadratic;
+};
+uniform PointLight lights[NR_LIGHTS];
+
 uniform vec3 viewPos;
 
 uniform bool do_normal_map = true;
@@ -68,29 +77,28 @@ float shadowSample(samplerCube current_depth_map, vec3 fragToLight) {
 }
 
 // lets do this with MULTIPLE LIGHTS
-float ShadowCalculation() {
+float ShadowCalculation(int light_index) {
     // !! NOTE !!
     // you NEED the non TBN stuff to do shadow calc
     float shadow = 0.0;
     int samples  = 20;
 
-    for (int i = 0; i < NR_LIGHTS; i++) {
+    // for (int i = 0; i < NR_LIGHTS; i++) {
 
-        vec3 light_pos = lightPos[i];
-        vec3 frag_pos = fs_in.FragPos;
+    vec3 light_pos = lights[light_index].position;
+    vec3 frag_pos = fs_in.FragPos;
 
-        vec3 fragToLight = frag_pos - light_pos; 
+    vec3 fragToLight = frag_pos - light_pos; 
 
-        if (i == 0) {
-            shadow += shadowSample(depthMap_1, fragToLight);
-        } else if (i == 1) {
-            shadow += shadowSample(depthMap_2, fragToLight);
-        } else if (i == 2) {
-            shadow += shadowSample(depthMap_3, fragToLight);
-        }
+    if (light_index == 0) {
+        shadow += shadowSample(depthMap_1, fragToLight) / float(samples);
+    } else if (light_index == 1) {
+        shadow += shadowSample(depthMap_2, fragToLight) / float(samples);
+    } else if (light_index == 2) {
+        shadow += shadowSample(depthMap_3, fragToLight) / float(samples);
     }
+    // }
 
-    shadow /= float(samples)*float(NR_LIGHTS);  
 
     return shadow;
 }
@@ -105,24 +113,31 @@ void main() {
     // vec3 light_pos;
     vec3 view_pos = fs_in.TangentViewPos;
 
-    vec3 lightColor = vec3(10.0f);
+    // vec3 lightColor = vec3(1.0f);
     // ambient
-    vec3 ambient = 0.3 * color;
+    // vec3 ambient = 0.3 * color;
+    
+    
+    vec3 light_contribution = vec3(0.0);
 
-    vec3 diffuse = vec3(0.0);
-    vec3 specular = vec3(0.0);
+    for (int i = 0; i < NR_LIGHTS; i++) {   
+        PointLight light = lights[i];
 
-    for (int i = 0; i < NR_LIGHTS; i++) {
+        // vec3 lightColor = light.diffuse;
 
         // use TBN to make sure its guchi
         // normal = normalize(fs_in.TBN * normal);  
         vec3 light_pos = fs_in.TangentLightPos[i];
-
+        float distance = length(light_pos - frag_pos);
         // diffuse
         vec3 lightDir = normalize(light_pos - frag_pos);
 
+        // attenuation
+        float attenuation = 1.0 / (light.constant + light.linear * distance + 
+            light.quadratic * (distance * distance)); 
+
         float diff = max(dot(lightDir, normal), 0.0);
-        diffuse = (diff * lightColor)/float(NR_LIGHTS);
+        vec3 diffuse = diff * light.color;
         // specular
         vec3 viewDir = normalize(view_pos - frag_pos);
         vec3 reflectDir = reflect(-lightDir, normal);
@@ -131,17 +146,18 @@ void main() {
         spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
         spec = clamp(spec, 0.0, 1.0);
 
-        specular += (spec * lightColor)/float(NR_LIGHTS);   
-    }
- 
+        vec3 specular = spec * light.color;
 
-    // vec3 lightDir = normalize(light_pos - frag_pos);
-    // float NdotL = dot(normal, lightDir);
-    // FragColor = vec4(vec3(NdotL * 0.5 + 0.5), 1.0);    
-    // return;
-    // calculate shadow
-    float shadow = ShadowCalculation();                                            
-    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;    
+        // ambient *= attenuation;
+        diffuse *= attenuation * light.intensity;
+        specular *= attenuation * light.intensity;
+
+        float shadow = ShadowCalculation(i);                                      
+        light_contribution += (1.0 - shadow) * (diffuse + specular);    
+    }
+    vec3 ambient_floor = vec3(0.2);
+    vec3 lighting = ambient_floor * color;
+    lighting += light_contribution * color;
     
     FragColor = vec4(lighting, 1.0);
 }  
