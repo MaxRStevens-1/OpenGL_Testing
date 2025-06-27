@@ -34,7 +34,8 @@ void render_scene(
 void render_scene_cube_shadows(
     Shader shader,
     unsigned int cube_texture,
-    unsigned int cubeVAO
+    unsigned int cubeVAO,
+    unsigned int planeVAO
 );
 std::vector<float> calculate_tangent_and_bitangent_for_vert(
     std::vector<float> vertices,
@@ -60,9 +61,10 @@ const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
 
 bool move_light = true;
 bool do_bump = true;
+bool do_skybox = true;
 
-const float near = 1.0f;
-const float far = 25.0f;
+const float near = 0.5f;
+const float far = 50.0f;
 
 // timing
 float deltaTime = 0.0f;
@@ -233,13 +235,13 @@ int main()
 
     float planeVertices[] = {
         // positions            // normals         // texcoords
-         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-        -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
-        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  25.0f,
+        -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   25.0f, 25.0f,
+        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   25.0f, 0.0f,
 
-         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
-        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
-         25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f			
+         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  25.0f,
+        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   25.0f, 0.0f,
+         25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  25.0f			
     };
 
 
@@ -254,6 +256,17 @@ int main()
 
     float new_cube_verts[cube_vert_size];
     std::copy(new_cube_vec.begin(), new_cube_vec.end(), new_cube_verts);
+
+
+    std::vector<float> plane_verts {planeVertices, planeVertices + std::size(planeVertices)};
+    std::vector<float> new_plane_vec = calculate_tangent_and_bitangent_for_vert(
+        plane_verts,
+        8,
+        2
+    );
+    const int plane_verts_size = new_plane_vec.size();
+    float new_plane_verts[plane_verts_size];
+    std::copy(new_plane_vec.begin(), new_plane_vec.end(), new_plane_verts);
 
     // for (int i = 0; i <new_cube_vec.size(); i++) {
     //     if (i % 14 == 0) {
@@ -287,13 +300,17 @@ int main()
     glGenBuffers(1, &planeVBO);
     glBindVertexArray(planeVAO);
     glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), &planeVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(new_plane_verts), &new_plane_verts, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(3);
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(8 * sizeof(float)));
+    glEnableVertexAttribArray(4);
+    glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(float), (void*)(11 * sizeof(float)));
     glBindVertexArray(0);
     // screen quad VAO
     unsigned int quadVAO, quadVBO;
@@ -404,6 +421,9 @@ int main()
     // shader.setInt("shadowMap", 1);
     render_depth_cube.use();
     render_depth_cube.setInt("depthMap", 0);
+
+    skybox_shader.use();
+    skybox_shader.setInt("skybox", 0);
     // render loop
     // -----------
 
@@ -448,7 +468,8 @@ int main()
             render_scene_cube_shadows(
                 depth_cube,
                 cube_texture,
-                cubeVAO
+                cubeVAO,
+                planeVAO
             );
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         // glCullFace(GL_BACK); 
@@ -475,6 +496,12 @@ int main()
         // // render scene as normal
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+
+        // first lets draw skybox
+        if (do_skybox) {
+            render_skybox(skybox_shader, skybox_texture, skyboxVAO);
+        }
+
         normal_shadow_map.use();
         normal_shadow_map.setVec3("lightPos", light_pos);
         normal_shadow_map.setVec3("viewPos", camera.camera_pos);
@@ -491,8 +518,10 @@ int main()
         render_scene_cube_shadows(
             normal_shadow_map,
             cube_texture,
-            cubeVAO
+            cubeVAO,
+            planeVAO
         );
+        
 
         // ntoe we have to do this last, as otherwise the light would block itself
         // now im going to go simple & draw a light source box
@@ -725,7 +754,8 @@ glm::mat4 configure_shader_and_matrices() {
 void render_scene_cube_shadows(
     Shader shader,
     unsigned int cube_texture,
-    unsigned int cubeVAO
+    unsigned int cubeVAO,
+    unsigned int planeVAO
 ) {
     shader.use();
     glm::mat4 model = glm::mat4(1.0f);
@@ -734,17 +764,21 @@ void render_scene_cube_shadows(
     shader.setMat4("view", view);
     shader.setMat4("projection", projection);
     
+    model = glm::translate(model, glm::vec3(10.0f, -3.0f, -20.0));
     model = glm::scale(model, glm::vec3(5.0f));
     shader.setMat4("model", model);
-    glBindVertexArray(cubeVAO);
+    glBindVertexArray(planeVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 4);
+
     // note that we disable culling here since we render 'inside' the cube instead of the usual 'outside' which throws off the normal culling methods.
     // glEnable(GL_CULL_FACE); 
     // A small little hack to invert normals when drawing cube from the inside so lighting still works.
-    shader.setBool("reverse_normals", true);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    shader.setBool("reverse_normals", false); // and of course disable it
+    // shader.setBool("reverse_normals", true);
+    // glDrawArrays(GL_TRIANGLES, 0, 36);
+    // shader.setBool("reverse_normals", false); // and of course disable it
     // glDisable(GL_CULL_FACE);
     // cubes
+    glBindVertexArray(cubeVAO);
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3(4.0f, -3.5f, 0.0));
     model = glm::scale(model, glm::vec3(0.5f));
@@ -850,7 +884,14 @@ void processInput(GLFWwindow *window) {
         do_bump = true;
         std::cout << "setting bump to: true" << std::endl;
     }
-
+    if (glfwGetKey(window, GLFW_KEY_INSERT) == GLFW_PRESS) {
+        do_skybox = true;
+        std::cout << "setting bump to: true" << std::endl;
+    }
+    if (glfwGetKey(window, GLFW_KEY_DELETE) == GLFW_PRESS) {
+        do_skybox = false;
+        std::cout << "setting bump to: true" << std::endl;
+    }
     camera.processInputForCamera(window);
 }
 
@@ -930,10 +971,11 @@ void render_skybox(
 
     skybox_shader.setMat4("view", view);
     skybox_shader.setMat4("projection", projection);
-    skybox_shader.setInt("skybox", 1);
+    skybox_shader.setInt("skybox", 0);
     
 
     glBindVertexArray(skyboxVAO);
+    glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_CUBE_MAP, skybox_texture);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glDepthMask(GL_TRUE);
