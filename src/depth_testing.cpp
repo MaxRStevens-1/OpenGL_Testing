@@ -14,6 +14,12 @@
 #include <vector>
 #include <iostream>
 
+struct depthMapFBO_cubemap {
+    unsigned int depthMapFBO;
+    unsigned int depth_cubemap;
+};
+
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -42,11 +48,17 @@ std::vector<float> calculate_tangent_and_bitangent_for_vert(
     int indicies_per_point,
     int num_triangles
 );
-glm::mat4 configure_shader_and_matrices();
-void set_shadow_cube_shader(GeoShader cube_shader);
+// glm::mat4 configure_shader_and_matrices();
+void set_shadow_cube_shader(GeoShader cube_shader, int current_light);
+depthMapFBO_cubemap create_depth_cubemap();
+// lights
+const int NUM_LIGHTS = 3;
 
 // shadow setup
-glm::vec3 light_pos = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 light_pos   = glm::vec3(0.0f, 0.0f, 0.0f);
+glm::vec3 light_pos_2 = glm::vec3(2.0f, 2.0f, 2.0f);
+glm::vec3 light_pos_3 = glm::vec3(1.0f, 1.0f, 1.0f);
+
 // settings
 const unsigned int SCR_WIDTH = 900;
 const unsigned int SCR_HEIGHT = 600;
@@ -59,7 +71,7 @@ bool firstMouse = true;
 
 const unsigned int SHADOW_WIDTH = 2048, SHADOW_HEIGHT = 2048;
 
-bool move_light = true;
+bool move_light = false;
 bool do_bump = true;
 bool do_skybox = true;
 
@@ -109,6 +121,11 @@ int main()
         return -1;
     }
 
+
+    int maxUnits;
+    glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxUnits);
+    std::cout << "Max texture units: " << maxUnits << std::endl;
+
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
@@ -124,7 +141,7 @@ int main()
     // new shaders
     GeoShader depth_cube("depth_cubemap");
     Shader render_depth_cube("render_depth_cube");
-    Shader normal_shadow_map("normal_mapping_tan_light");
+    Shader normal_shadow_map("hdr_bloom_multi_light");
     // Shader normal_shadow_map("cube_shadow_map");
     
     Shader light_source_shader("lightSource");
@@ -331,36 +348,50 @@ int main()
     // create shadowmaps framebuffer depth buffer
 
     // creating shadow cubemap
-    unsigned int depthMapFBO;
-    glGenFramebuffers(1, &depthMapFBO);  
-    unsigned int depth_cubemap;
-    glGenTextures(1, &depth_cubemap);
-    glBindTexture(GL_TEXTURE_CUBE_MAP, depth_cubemap);
-    for (unsigned int i = 0; i < 6; ++i) {
-        glTexImage2D(
-            GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
-            0, 
-            GL_DEPTH_COMPONENT, 
-            SHADOW_WIDTH, 
-            SHADOW_HEIGHT, 
-            0, 
-            GL_DEPTH_COMPONENT, 
-            GL_FLOAT, 
-            NULL
-        ); 
-    }
+    unsigned int depthMapFBO,   depthMapFBO_2,   depthMapFBO_3;
+    unsigned int depth_cubemap, depth_cubemap_2, depth_cubemap_3;
 
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);  
 
-    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_cubemap, 0);
-    glDrawBuffer(GL_NONE);
-    glReadBuffer(GL_NONE);
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);  
+    depthMapFBO_cubemap curr_info = create_depth_cubemap();
+    depthMapFBO = curr_info.depthMapFBO;
+    depth_cubemap = curr_info.depth_cubemap;
+    curr_info = create_depth_cubemap();
+    depthMapFBO_2 = curr_info.depthMapFBO;
+    depth_cubemap_2 = curr_info.depth_cubemap;
+    curr_info = create_depth_cubemap();
+    depthMapFBO_3 = curr_info.depthMapFBO;
+    depth_cubemap_3 = curr_info.depth_cubemap;
+
+    // unsigned int depthMapFBO;
+    // glGenFramebuffers(1, &depthMapFBO);  
+    // unsigned int depth_cubemap;
+    // glGenTextures(1, &depth_cubemap);
+    // glBindTexture(GL_TEXTURE_CUBE_MAP, depth_cubemap);
+    // for (unsigned int i = 0; i < 6; ++i) {
+    //     glTexImage2D(
+    //         GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
+    //         0, 
+    //         GL_DEPTH_COMPONENT, 
+    //         SHADOW_WIDTH, 
+    //         SHADOW_HEIGHT, 
+    //         0, 
+    //         GL_DEPTH_COMPONENT, 
+    //         GL_FLOAT, 
+    //         NULL
+    //     ); 
+    // }
+
+    // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);  
+
+    // glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    // glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_cubemap, 0);
+    // glDrawBuffer(GL_NONE);
+    // glReadBuffer(GL_NONE);
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0);  
 
 
     // load cubemap
@@ -410,15 +441,16 @@ int main()
     // loading const data
     // ------------------
     // lets grab some const mat4's
-    glm::mat4 light_space_matrix = configure_shader_and_matrices();
-
     // shader configuration
     // --------------------
     normal_shadow_map.use();
     normal_shadow_map.setInt("diffuseTexture", 0);
-    normal_shadow_map.setInt("depthMap", 1);
-    normal_shadow_map.setInt("normalMap", 2);
-    // shader.setInt("shadowMap", 1);
+    normal_shadow_map.setInt("normalMap", 1);
+    normal_shadow_map.setInt("depthMap_1", 2);
+    normal_shadow_map.setInt("depthMap_2", 3);
+    normal_shadow_map.setInt("depthMap_3", 4);
+
+
     render_depth_cube.use();
     render_depth_cube.setInt("depthMap", 0);
 
@@ -456,22 +488,54 @@ int main()
         glCullFace(GL_FRONT);
 
 
-        depth_cube.use();
-        set_shadow_cube_shader(depth_cube);
-        // light_space_matrix = configure_shader_and_matrices();
-        // simple_depth.setMat4("lightSpaceMatrix", light_space_matrix);
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-        glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-            glClear(GL_DEPTH_BUFFER_BIT);
-            glActiveTexture(GL_TEXTURE0);
-            glBindTexture(GL_TEXTURE_CUBE_MAP, depth_cubemap);
-            render_scene_cube_shadows(
-                depth_cube,
-                cube_texture,
-                cubeVAO,
-                planeVAO
-            );
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        for (int i = 0; i < NUM_LIGHTS; i++) {
+            depth_cube.use();
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            set_shadow_cube_shader(depth_cube, i);
+            // light_space_matrix = configure_shader_and_matrices();
+            // simple_depth.setMat4("lightSpaceMatrix", light_space_matrix);
+            unsigned int current_depthMapFBO;
+            unsigned int current_depth_cubemap;
+
+            if (i == 0) {
+                current_depthMapFBO = depthMapFBO;
+                current_depth_cubemap = depth_cubemap;
+            } else if (i == 1) {
+                current_depthMapFBO = depthMapFBO_2;
+                current_depth_cubemap = depth_cubemap_2;
+            } else if (i == 2) {
+                current_depthMapFBO = depthMapFBO_3;
+                current_depth_cubemap = depth_cubemap_3;
+            }
+
+            glBindFramebuffer(GL_FRAMEBUFFER, current_depthMapFBO);
+                glClear(GL_DEPTH_BUFFER_BIT);
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_CUBE_MAP, current_depth_cubemap);
+                render_scene_cube_shadows(
+                    depth_cube,
+                    cube_texture,
+                    cubeVAO,
+                    planeVAO
+                );
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        }
+        // set_shadow_cube_shader(depth_cube, 0);
+        // // light_space_matrix = configure_shader_and_matrices();
+        // // simple_depth.setMat4("lightSpaceMatrix", light_space_matrix);
+        // glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        // glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+        //     glClear(GL_DEPTH_BUFFER_BIT);
+        //     glActiveTexture(GL_TEXTURE0);
+        //     glBindTexture(GL_TEXTURE_CUBE_MAP, depth_cubemap);
+        //     render_scene_cube_shadows(
+        //         depth_cube,
+        //         cube_texture,
+        //         cubeVAO,
+        //         planeVAO
+        //     );
+        // glBindFramebuffer(GL_FRAMEBUFFER, 0);
         // glCullFace(GL_BACK); 
         // glCullFace(GL_FRONT);
 
@@ -503,7 +567,9 @@ int main()
         }
 
         normal_shadow_map.use();
-        normal_shadow_map.setVec3("lightPos", light_pos);
+        normal_shadow_map.setVec3("lightPos[0]", light_pos);
+        normal_shadow_map.setVec3("lightPos[1]", light_pos_2);
+        normal_shadow_map.setVec3("lightPos[2]", light_pos_3);
         normal_shadow_map.setVec3("viewPos", camera.camera_pos);
         normal_shadow_map.setFloat("far_plane", far);
         normal_shadow_map.setBool("do_normal_map", do_bump);
@@ -511,9 +577,13 @@ int main()
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, cube_texture);
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, depth_cubemap);        
+        glBindTexture(GL_TEXTURE_2D, cube_bump);  
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, cube_bump);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, depth_cubemap);      
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, depth_cubemap_2);      
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, depth_cubemap_3);      
 
         render_scene_cube_shadows(
             normal_shadow_map,
@@ -526,16 +596,29 @@ int main()
         // ntoe we have to do this last, as otherwise the light would block itself
         // now im going to go simple & draw a light source box
         light_source_shader.use();
-        glm::mat4 view = camera.getView();
-        glm::mat4 projection = camera.getProjection();
-        glm::mat4 model = glm::mat4(1.0f);
-        light_source_shader.setMat4("view", view);
-        light_source_shader.setMat4("projection", projection);
-        model = glm::translate(model, light_pos);
-        model = glm::scale (model, glm::vec3(0.1));
-        light_source_shader.setMat4("model", model);
-        glBindVertexArray(skyboxVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        for (int i = 0; i < NUM_LIGHTS; i++) {
+            glm::vec3 current_light_pos;
+
+            if (i == 0) {
+                current_light_pos = light_pos;
+            } else if (i == 1) {
+                current_light_pos = light_pos_2;
+            } else if (i == 2) {
+                current_light_pos = light_pos_3;
+            }
+
+            glm::mat4 view = camera.getView();
+            glm::mat4 projection = camera.getProjection();
+            glm::mat4 model = glm::mat4(1.0f);
+            light_source_shader.setMat4("view", view);
+            light_source_shader.setMat4("projection", projection);
+            model = glm::translate(model, current_light_pos);
+            model = glm::scale (model, glm::vec3(0.1));
+            light_source_shader.setMat4("model", model);
+            glBindVertexArray(skyboxVAO);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+
         
         // lets unbind framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -666,10 +749,21 @@ std::vector<float> calculate_tangent_and_bitangent_for_vert(
     return new_vertices;
 }
 
-void set_shadow_cube_shader(GeoShader cube_shader) {
+
+
+void set_shadow_cube_shader(GeoShader cube_shader, int current_light) {
     float aspect = (float)SHADOW_WIDTH/(float)SHADOW_HEIGHT;
 
     glm::mat4 shadowProj = glm::perspective(glm::radians(90.0f), aspect, near, far); 
+
+    glm::vec3 current_light_pos;
+    if (current_light == 0) {
+        current_light_pos = light_pos;
+    } else if (current_light == 1) {
+        current_light_pos = light_pos_2;
+    } else if (current_light == 2) {
+        current_light_pos = light_pos_3;
+    }
 
     // look at each face of the cube form light pos
     // order is right, left, top, bottom, near, far
@@ -677,55 +771,56 @@ void set_shadow_cube_shader(GeoShader cube_shader) {
     shadow_transforms.push_back(
         shadowProj * 
         glm::lookAt(
-            light_pos, 
-            light_pos + glm::vec3( 1.0, 0.0, 0.0), 
+            current_light_pos, 
+            current_light_pos + glm::vec3( 1.0, 0.0, 0.0), 
             glm::vec3(0.0,-1.0, 0.0)
         )
     );
     shadow_transforms.push_back(
         shadowProj * 
         glm::lookAt(
-            light_pos, 
-            light_pos + glm::vec3(-1.0, 0.0, 0.0), 
+            current_light_pos, 
+            current_light_pos + glm::vec3(-1.0, 0.0, 0.0), 
             glm::vec3(0.0,-1.0, 0.0)
         )
     );
     shadow_transforms.push_back(
         shadowProj * 
         glm::lookAt(
-            light_pos, 
-            light_pos + glm::vec3( 0.0, 1.0, 0.0), 
+            current_light_pos, 
+            current_light_pos + glm::vec3( 0.0, 1.0, 0.0), 
             glm::vec3(0.0, 0.0, 1.0)
         )
     );
     shadow_transforms.push_back(
         shadowProj * 
         glm::lookAt(
-            light_pos, 
-            light_pos + glm::vec3( 0.0,-1.0, 0.0), 
+            current_light_pos, 
+            current_light_pos + glm::vec3( 0.0,-1.0, 0.0), 
             glm::vec3(0.0, 0.0,-1.0)
         )
     );
     shadow_transforms.push_back(
         shadowProj * 
         glm::lookAt(
-            light_pos, 
-            light_pos + glm::vec3( 0.0, 0.0, 1.0), 
+            current_light_pos, 
+            current_light_pos + glm::vec3( 0.0, 0.0, 1.0), 
             glm::vec3(0.0,-1.0, 0.0)
         )
     );
     shadow_transforms.push_back(
         shadowProj * 
             glm::lookAt(
-                light_pos, 
-                light_pos + glm::vec3( 0.0, 0.0,-1.0), 
+                current_light_pos, 
+                current_light_pos + glm::vec3( 0.0, 0.0,-1.0), 
                 glm::vec3(0.0,-1.0, 0.0)
             )
     );
 
     cube_shader.use();
     cube_shader.setFloat("far_plane", far);
-    cube_shader.setVec3("light_pos", light_pos);
+    // light pos here is kept as a single as we are doing 1 cube map per light
+    cube_shader.setVec3("light_pos", current_light_pos);
     cube_shader.setMat4("shadowMatrices[0]", shadow_transforms.at(0));
     cube_shader.setMat4("shadowMatrices[1]", shadow_transforms.at(1));
     cube_shader.setMat4("shadowMatrices[2]", shadow_transforms.at(2));
@@ -735,21 +830,21 @@ void set_shadow_cube_shader(GeoShader cube_shader) {
 
 }
 
-glm::mat4 configure_shader_and_matrices() {
-    float near_plane = 1.0f, far_plane = 10.5f;
-    // this determines what is & what isn't in the depth map. Make sure all objects wanted are in here
-    glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+// glm::mat4 configure_shader_and_matrices() {
+//     float near_plane = 1.0f, far_plane = 10.5f;
+//     // this determines what is & what isn't in the depth map. Make sure all objects wanted are in here
+//     glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
 
-    // having light source's position looking at the scenes center
-    glm::mat4 lightView = glm::lookAt(
-        light_pos, // light world pos
-        glm::vec3( 0.0f, 0.0f,  0.0f), // where its looking
-        glm::vec3( 0.0f, 1.0f,  0.0f)  // up direction
-    ); 
+//     // having light source's position looking at the scenes center
+//     glm::mat4 lightView = glm::lookAt(
+//         light_pos, // light world pos
+//         glm::vec3( 0.0f, 0.0f,  0.0f), // where its looking
+//         glm::vec3( 0.0f, 1.0f,  0.0f)  // up direction
+//     ); 
 
-    glm::mat4 lightSpaceMatrix = lightProjection * lightView;
-    return lightSpaceMatrix; 
-}
+//     glm::mat4 lightSpaceMatrix = lightProjection * lightView;
+//     return lightSpaceMatrix; 
+// }
 
 void render_scene_cube_shadows(
     Shader shader,
@@ -861,6 +956,46 @@ void render_scene(
     shader.setMat4("model", model);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     glBindVertexArray(0);
+}
+
+
+depthMapFBO_cubemap create_depth_cubemap() {
+    unsigned int depthMapFBO;
+    glGenFramebuffers(1, &depthMapFBO);  
+    unsigned int depth_cubemap;
+    glGenTextures(1, &depth_cubemap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, depth_cubemap);
+    for (unsigned int i = 0; i < 6; ++i) {
+        glTexImage2D(
+            GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
+            0, 
+            GL_DEPTH_COMPONENT, 
+            SHADOW_WIDTH, 
+            SHADOW_HEIGHT, 
+            0, 
+            GL_DEPTH_COMPONENT, 
+            GL_FLOAT, 
+            NULL
+        ); 
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);  
+
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_cubemap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);  
+
+    depthMapFBO_cubemap return_obj;
+    return_obj.depth_cubemap = depth_cubemap;
+    return_obj.depthMapFBO = depthMapFBO;
+
+    return return_obj;
 }
 
 
