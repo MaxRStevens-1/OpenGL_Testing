@@ -60,7 +60,6 @@ float shadowSample(samplerCube current_depth_map, vec3 fragToLight) {
 
     // bias prevents shadow acne 
     //w/o sampling 
-    // float shadow = currentDepth -  bias > closestDepth ? 1.0 : 0.0;  
     float bias   = 0.15;
     int samples  = 20;
     float viewDistance = length(view_pos - frag_pos);
@@ -112,21 +111,11 @@ void main() {
     vec3 frag_pos  = fs_in.TangentFragPos;
     // vec3 light_pos;
     vec3 view_pos = fs_in.TangentViewPos;
-
-    // vec3 lightColor = vec3(1.0f);
-    // ambient
-    // vec3 ambient = 0.3 * color;
-    
     
     vec3 light_contribution = vec3(0.0);
 
     for (int i = 0; i < NR_LIGHTS; i++) {   
         PointLight light = lights[i];
-
-        // vec3 lightColor = light.diffuse;
-
-        // use TBN to make sure its guchi
-        // normal = normalize(fs_in.TBN * normal);  
         vec3 light_pos = fs_in.TangentLightPos[i];
         float distance = length(light_pos - frag_pos);
         // diffuse

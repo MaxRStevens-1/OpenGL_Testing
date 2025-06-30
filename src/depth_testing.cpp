@@ -51,7 +51,8 @@ void render_scene_cube_shadows(
     Shader shader,
     unsigned int cube_texture,
     unsigned int cubeVAO,
-    unsigned int planeVAO
+    unsigned int planeVAO,
+    unsigned int move_frame
 );
 std::vector<float> calculate_tangent_and_bitangent_for_vert(
     std::vector<float> vertices,
@@ -98,8 +99,8 @@ const float far = 50.0f;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-
-
+bool move_box = true;
+glm::vec3 translate_vec = glm::vec3(0.0f);
 
 int main()
 {
@@ -483,7 +484,7 @@ int main()
     // render loop
     // -----------
 
-    float light_moved_frames = 0;
+    float moved_frames = 0;
     while(!glfwWindowShouldClose(window))
     {
         // per-frame time logic
@@ -497,10 +498,10 @@ int main()
         processInput(window);
 
         // lets change light pos over time?
-        if (move_light) {
-            light_1.position.z = static_cast<float>(sin(light_moved_frames * 0.01) * 3.0);
-            light_1.position.y = static_cast<float>(cos(light_moved_frames * 0.01) * 3.0);
-            light_moved_frames++;
+        if (move_box) {
+            // light_1.position.z = static_cast<float>(sin(light_moved_frames * 0.001) * 3.0);
+            // light_1.position.y = static_cast<float>(cos(light_moved_frames * 0.001) * 3.0);
+            moved_frames++;
         }
 
         // render
@@ -517,8 +518,7 @@ int main()
             depth_cube.use();
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             set_shadow_cube_shader(depth_cube, i);
-            // light_space_matrix = configure_shader_and_matrices();
-            // simple_depth.setMat4("lightSpaceMatrix", light_space_matrix);
+
             unsigned int current_depthMapFBO;
             unsigned int current_depth_cubemap;
 
@@ -541,43 +541,12 @@ int main()
                     depth_cube,
                     cube_texture,
                     cubeVAO,
-                    planeVAO
+                    planeVAO,
+                    moved_frames
                 );
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
-        // set_shadow_cube_shader(depth_cube, 0);
-        // // light_space_matrix = configure_shader_and_matrices();
-        // // simple_depth.setMat4("lightSpaceMatrix", light_space_matrix);
-        // glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
-        // glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-        //     glClear(GL_DEPTH_BUFFER_BIT);
-        //     glActiveTexture(GL_TEXTURE0);
-        //     glBindTexture(GL_TEXTURE_CUBE_MAP, depth_cubemap);
-        //     render_scene_cube_shadows(
-        //         depth_cube,
-        //         cube_texture,
-        //         cubeVAO,
-        //         planeVAO
-        //     );
-        // glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        // glCullFace(GL_BACK); 
-        // glCullFace(GL_FRONT);
-
-
-        // DEBUG_RENDER_DEPTH_FROM_LIGHT
-        // glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
-        // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
-        // render_depth_cube.use();
-        // render_depth_cube.setFloat("near_plane", 1.0f);
-        // render_depth_cube.setFloat("far_plane", 10.5f);
-        // glBindTexture(GL_TEXTURE_CUBE_MAP, depth_cubemap);        
-        //     glBindVertexArray(quadVAO);
-        //     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        // glBindTexture(GL_TEXTURE_CUBE_MAP, 0);        
-
-        
-
         // use frame buffer
         glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
 
@@ -627,7 +596,8 @@ int main()
             normal_shadow_map,
             cube_texture,
             cubeVAO,
-            planeVAO
+            planeVAO,
+            moved_frames
         );
         
 
@@ -893,7 +863,8 @@ void render_scene_cube_shadows(
     Shader shader,
     unsigned int cube_texture,
     unsigned int cubeVAO,
-    unsigned int planeVAO
+    unsigned int planeVAO,
+    unsigned int move_frames
 ) {
     shader.use();
     glm::mat4 model = glm::mat4(1.0f);
@@ -908,6 +879,16 @@ void render_scene_cube_shadows(
     glBindVertexArray(planeVAO);
     glDrawArrays(GL_TRIANGLES, 0, 4);
 
+    if (move_box) {
+        if (move_frames % 1000 > 500) {
+            translate_vec.x += static_cast<float>(sin((move_frames)  * 0.001) * 0.01f);
+        } else {
+            translate_vec.x -= static_cast<float>(sin((move_frames) * 0.001) * 0.01f);
+        }
+    }
+
+
+
     // note that we disable culling here since we render 'inside' the cube instead of the usual 'outside' which throws off the normal culling methods.
     // glEnable(GL_CULL_FACE); 
     // A small little hack to invert normals when drawing cube from the inside so lighting still works.
@@ -918,12 +899,12 @@ void render_scene_cube_shadows(
     // cubes
     glBindVertexArray(cubeVAO);
     model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(4.0f, -3.5f, 0.0));
+    model = glm::translate(model, translate_vec + glm::vec3(4.0f, -3.5f, 0.0));
     model = glm::scale(model, glm::vec3(0.5f));
     shader.setMat4("model", model);
     glDrawArrays(GL_TRIANGLES, 0, 36);
     model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(2.0f, 3.0f, 1.0));
+    model = glm::translate(model, translate_vec + glm::vec3(2.0f, 3.0f, 1.0));
     model = glm::scale(model, glm::vec3(0.75f));
     shader.setMat4("model", model);
     glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -940,7 +921,7 @@ void render_scene_cube_shadows(
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
     model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(-1.5f, 2.0f, -3.0));
+    model = glm::translate(model, translate_vec + glm::vec3(-1.5f, -3.0f, -3.0));
     model = glm::rotate(model, (float)glfwGetTime() * -1.0f, glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
     model = glm::scale(model, glm::vec3(0.75f));
     shader.setMat4("model", model);
@@ -1063,8 +1044,8 @@ void set_up_lights() {
     light_1.position = light_pos;
     light_1.linear = 0.07f;
     light_1.quadratic = 0.017f;
-    light_1.color = glm::vec3(1.0f);
-    light_1.intensity = 20.0f;
+    light_1.color = glm::vec3(0.95f, 0.0f, 0.0f);
+    light_1.intensity = 0.5f;
     // light_1.diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
     // light_1.specular = glm::vec3(1.0f, 1.0f, 1.0f);
 
@@ -1073,7 +1054,7 @@ void set_up_lights() {
     light_2.linear = 0.07f;
     light_2.quadratic = 0.017f;
     light_2.color = glm::vec3(1.0f);
-    light_2.intensity = 10.0f;
+    light_2.intensity = 0.5f;
 
     // light_2.diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
     // light_2.specular = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -1082,8 +1063,8 @@ void set_up_lights() {
     light_3.position = light_pos_3;
     light_3.linear = 0.07f;
     light_3.quadratic = 0.017f;
-    light_3.color = glm::vec3(1.0f);
-    light_3.intensity = 5.0f;
+    light_3.color = glm::vec3(0.0f, 0.0f, 0.95f);
+    light_3.intensity = 0.5f;
     // light_3.diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
     // light_3.specular = glm::vec3(1.0f, 1.0f, 1.0f);
 
@@ -1097,17 +1078,13 @@ void processInput(GLFWwindow *window) {
         glfwSetWindowShouldClose(window, true);
     } 
 
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        move_light = !move_light;
-    }
-
     if (glfwGetKey(window, GLFW_KEY_1) == GLFW_PRESS) {
-        do_bump = false;
-        std::cout << "setting bump to: false" << std::endl;
+        move_box = false;
+        std::cout << "setting move box to: false" << std::endl;
     }
     if (glfwGetKey(window, GLFW_KEY_2) == GLFW_PRESS) {
-        do_bump = true;
-        std::cout << "setting bump to: true" << std::endl;
+        move_box = true;
+        std::cout << "setting move box to: true" << std::endl;
     }
     if (glfwGetKey(window, GLFW_KEY_INSERT) == GLFW_PRESS) {
         do_skybox = true;
