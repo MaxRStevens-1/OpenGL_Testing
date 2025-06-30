@@ -1,5 +1,6 @@
 #version 330 core
-out vec4 FragColor;
+layout (location = 0) out vec4 FragColor;
+layout (location = 1) out vec4 BrightColor;
 
 #define NR_LIGHTS 3
 
@@ -82,7 +83,6 @@ float ShadowCalculation(int light_index) {
     float shadow = 0.0;
     int samples  = 20;
 
-    // for (int i = 0; i < NR_LIGHTS; i++) {
 
     vec3 light_pos = lights[light_index].position;
     vec3 frag_pos = fs_in.FragPos;
@@ -96,8 +96,6 @@ float ShadowCalculation(int light_index) {
     } else if (light_index == 2) {
         shadow += shadowSample(depthMap_3, fragToLight) / float(samples);
     }
-    // }
-
 
     return shadow;
 }
@@ -149,4 +147,11 @@ void main() {
     lighting += light_contribution * color;
     
     FragColor = vec4(lighting, 1.0);
+
+    float brightness = dot(FragColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+    if(brightness > 1.0) {
+        BrightColor = vec4(FragColor.rgb, 1.0);
+    } else {
+        BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
+    }
 }  

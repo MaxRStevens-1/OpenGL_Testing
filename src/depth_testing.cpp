@@ -68,9 +68,7 @@ void set_shader_from_light(PointLight light, int index, Shader shader);
 const int NUM_LIGHTS = 3;
 
 // shadow setup
-glm::vec3 light_pos   = glm::vec3(0.0f, 0.0f, 0.0f);
-glm::vec3 light_pos_2 = glm::vec3(0.2f, 0.2f, 0.2f);
-glm::vec3 light_pos_3 = glm::vec3(-0.2f, -0.2f, -0.2f);
+
 
 PointLight light_1;
 PointLight light_2;
@@ -164,8 +162,10 @@ int main()
     Shader normal_shadow_map("hdr_bloom_multi_light");
     // Shader normal_shadow_map("cube_shadow_map");
     
-    Shader light_source_shader("lightSource");
-    Shader hdr_shader("hdr_shader");
+    Shader light_source_shader("lightSource_bloom");
+    Shader bloom_hdr("bloom_hdr");
+    Shader bloom_hdr_final("bloom_hdr_final");
+    // Shader hdr_shader("hdr_shader");
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float quad_vertices[] = {
@@ -382,38 +382,6 @@ int main()
     depthMapFBO_3 = curr_info.depthMapFBO;
     depth_cubemap_3 = curr_info.depth_cubemap;
 
-    // unsigned int depthMapFBO;
-    // glGenFramebuffers(1, &depthMapFBO);  
-    // unsigned int depth_cubemap;
-    // glGenTextures(1, &depth_cubemap);
-    // glBindTexture(GL_TEXTURE_CUBE_MAP, depth_cubemap);
-    // for (unsigned int i = 0; i < 6; ++i) {
-    //     glTexImage2D(
-    //         GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 
-    //         0, 
-    //         GL_DEPTH_COMPONENT, 
-    //         SHADOW_WIDTH, 
-    //         SHADOW_HEIGHT, 
-    //         0, 
-    //         GL_DEPTH_COMPONENT, 
-    //         GL_FLOAT, 
-    //         NULL
-    //     ); 
-    // }
-
-    // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    // glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);  
-
-    // glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-    // glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, depth_cubemap, 0);
-    // glDrawBuffer(GL_NONE);
-    // glReadBuffer(GL_NONE);
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);  
-
-
     // load cubemap
     // -------------
 
@@ -438,32 +406,80 @@ int main()
     glBindVertexArray(0);
 
     // lets create hdr buffer
+    // unsigned int hdrFBO;
+    // glGenFramebuffers(1, &hdrFBO);
+    // unsigned int colorBuffer;
+    // glGenTextures(1, &colorBuffer);
+    // glBindTexture(GL_TEXTURE_2D, colorBuffer);
+    // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    // create depth buffer (renderbuffer)
+
     unsigned int hdrFBO;
     glGenFramebuffers(1, &hdrFBO);
-    unsigned int colorBuffer;
-    glGenTextures(1, &colorBuffer);
-    glBindTexture(GL_TEXTURE_2D, colorBuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // create depth buffer (renderbuffer)
+    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+    unsigned int colorBuffers[2];
+    glGenTextures(2, colorBuffers);
+    for (unsigned int i = 0; i < 2; i++) {
+        glBindTexture(GL_TEXTURE_2D, colorBuffers[i]);
+        glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL
+        );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        // attach texture to framebuffer
+        glFramebufferTexture2D(
+            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorBuffers[i], 0
+        );
+    }  
+
     unsigned int rboDepth;
     glGenRenderbuffers(1, &rboDepth);
     glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
     glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
-    // attach buffers
-    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
+    // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering 
+    unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+    glDrawBuffers(2, attachments);
+    // finally check if framebuffer is complete
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         std::cout << "Framebuffer not complete!" << std::endl;
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // attach HDR buffers
+
+    // create two pingpong buffers
+    unsigned int pingpongFBO[2];
+    unsigned int pingpongBuffers[2];
+    glGenFramebuffers(2, pingpongFBO);
+    glGenTextures(2, pingpongBuffers);
+    for (unsigned int i = 0; i < 2; i++)
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[i]);
+        glBindTexture(GL_TEXTURE_2D, pingpongBuffers[i]);
+        glTexImage2D(
+            GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL
+        );
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glFramebufferTexture2D(
+            GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, pingpongBuffers[i], 0
+        );
+        // also check if framebuffers are complete (no need for depth buffer)
+        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+            std::cout << "Framebuffer not complete!" << std::endl;
+    }
+
     // loading const data
     // ------------------
 
     // set up lights
     set_up_lights();
-
 
     // lets grab some const mat4's
     // shader configuration
@@ -481,12 +497,17 @@ int main()
 
     skybox_shader.use();
     skybox_shader.setInt("skybox", 0);
+
+    bloom_hdr.use();
+    bloom_hdr.setInt("image", 0);
+    bloom_hdr_final.use();
+    bloom_hdr_final.setInt("scene", 0);
+    bloom_hdr_final.setInt("bloomBlur", 1);
     // render loop
     // -----------
 
     float moved_frames = 0;
-    while(!glfwWindowShouldClose(window))
-    {
+    while(!glfwWindowShouldClose(window)) {
         // per-frame time logic
         // --------------------
         float currentFrame = static_cast<float>(glfwGetTime());
@@ -497,10 +518,7 @@ int main()
         // -----
         processInput(window);
 
-        // lets change light pos over time?
         if (move_box) {
-            // light_1.position.z = static_cast<float>(sin(light_moved_frames * 0.001) * 3.0);
-            // light_1.position.y = static_cast<float>(cos(light_moved_frames * 0.001) * 3.0);
             moved_frames++;
         }
 
@@ -546,6 +564,8 @@ int main()
                 );
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
         }
+        // lets b extra careful & unset framebuffer here
+        // glBindFramebuffer(GL_FRAMEBUFFER, 0);
         
         // use frame buffer
         glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
@@ -574,9 +594,7 @@ int main()
 
             set_shader_from_light(current_light, i, normal_shadow_map);
         }
-        // normal_shadow_map.setVec3("lightPos[0]", light_1.position);
-        // normal_shadow_map.setVec3("lightPos[1]", light_2.position);
-        // normal_shadow_map.setVec3("lightPos[2]", light_3.position);
+
         normal_shadow_map.setVec3("viewPos", camera.camera_pos);
         normal_shadow_map.setFloat("far_plane", far);
         normal_shadow_map.setBool("do_normal_map", do_bump);
@@ -625,6 +643,7 @@ int main()
             glm::mat4 model = glm::mat4(1.0f);
             glm::vec3 temp_color = (current_light.color * current_light.intensity);
             light_source_shader.setVec3("lightColor", temp_color);
+
             model = glm::translate(model, current_light.position);
             model = glm::scale (model, glm::vec3(0.1));
             light_source_shader.setMat4("model", model);
@@ -635,12 +654,43 @@ int main()
         
         // lets unbind framebuffer
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        // now lets render the scene from the framebuffer
-        hdr_shader.use();
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, colorBuffer);
+
+        // now lets blur bright fragments w/ 2 pass gauss. blur
+        bool horizontal = true, first_iteration = true;
+        int amount = 10;
+        bloom_hdr.use();
+        for (unsigned int i = 0; i < amount; i++) {
+            glBindFramebuffer(GL_FRAMEBUFFER, pingpongFBO[horizontal]); 
+            bloom_hdr.setBool("horizontal", horizontal);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(
+                GL_TEXTURE_2D, first_iteration ? colorBuffers[1] : pingpongBuffers[!horizontal]
+            ); 
             glBindVertexArray(quadVAO);
             glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+            horizontal = !horizontal;
+            if (first_iteration) {
+                first_iteration = false;
+            }
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, 0); 
+
+        // now lets render floating point color buffer
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        bloom_hdr_final.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, pingpongBuffers[1]);
+        bloom_hdr_final.setFloat("exposure", 1.0f);
+            glBindVertexArray(quadVAO);
+            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        // now lets render the scene from the framebuffer
+        // hdr_shader.use();
+        // glActiveTexture(GL_TEXTURE0);
+        // glBindTexture(GL_TEXTURE_2D, colorBuffer);
+        //     glBindVertexArray(quadVAO);
+        //     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
         // -------------------------------------------------------------------------------
@@ -1040,12 +1090,16 @@ void set_shader_from_light(PointLight light, int index, Shader shader) {
 }
 
 void set_up_lights() {
+    glm::vec3 light_pos   = glm::vec3(3.0f, 0.0f, 3.0f);
+    glm::vec3 light_pos_2 = glm::vec3(0.2f, 0.2f, 0.2f);
+    glm::vec3 light_pos_3 = glm::vec3(-5.0f, -2.0f, -4.0f);
+
     // light 1
     light_1.position = light_pos;
     light_1.linear = 0.07f;
     light_1.quadratic = 0.017f;
     light_1.color = glm::vec3(0.95f, 0.0f, 0.0f);
-    light_1.intensity = 0.5f;
+    light_1.intensity = 5.0f;
     // light_1.diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
     // light_1.specular = glm::vec3(1.0f, 1.0f, 1.0f);
 
@@ -1054,7 +1108,7 @@ void set_up_lights() {
     light_2.linear = 0.07f;
     light_2.quadratic = 0.017f;
     light_2.color = glm::vec3(1.0f);
-    light_2.intensity = 0.5f;
+    light_2.intensity = 1.0f;
 
     // light_2.diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
     // light_2.specular = glm::vec3(1.0f, 1.0f, 1.0f);
@@ -1064,7 +1118,7 @@ void set_up_lights() {
     light_3.linear = 0.07f;
     light_3.quadratic = 0.017f;
     light_3.color = glm::vec3(0.0f, 0.0f, 0.95f);
-    light_3.intensity = 0.5f;
+    light_3.intensity = 5.0f;
     // light_3.diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
     // light_3.specular = glm::vec3(1.0f, 1.0f, 1.0f);
 
